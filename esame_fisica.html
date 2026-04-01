@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulatore Esame — Fisica eCampus</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=Source+Serif+4:wght@300;400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0e0c;
+  --surface: #1a1814;
+  --surface2: #222018;
+  --border: #2e2b24;
+  --border2: #3d3a30;
+  --accent: #c8a96e;
+  --accent2: #e8c98a;
+  --accent-dim: rgba(200,169,110,0.12);
+  --red: #c0392b;
+  --red-dim: rgba(192,57,43,0.12);
+  --green: #27ae60;
+  --green-dim: rgba(39,174,96,0.12);
+  --blue: #5dade2;
+  --blue-dim: rgba(93,173,226,0.10);
+  --text: #e8e0d0;
+  --text-muted: #9a9080;
+  --text-dim: #5a5248;
+  --radius: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Source Serif 4', Georgia, serif; min-height: 100vh; line-height: 1.7; }
+
+.screen { display: none; min-height: 100vh; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ══ WELCOME ══ */
+#screen-welcome { align-items: center; justify-content: center; padding: 40px 20px; }
+.welcome-inner { max-width: 620px; width: 100%; text-align: center; position: relative; }
+.welcome-badge {
+  display: inline-block; font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--accent); border: 1px solid rgba(200,169,110,0.3);
+  padding: 6px 16px; border-radius: 20px; margin-bottom: 28px;
+}
+.welcome-title { font-family: 'Playfair Display', serif; font-size: clamp(38px,6vw,68px); font-weight: 900; line-height: 1.1; margin-bottom: 10px; }
+.welcome-title em { font-style: italic; color: var(--accent); }
+.welcome-subtitle { font-size: 16px; color: var(--text-muted); margin-bottom: 44px; font-style: italic; }
+
+.exam-specs { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 16px; }
+.spec-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px 16px; text-align: center; }
+.spec-num { font-family: 'Playfair Display', serif; font-size: 34px; font-weight: 900; color: var(--accent); line-height: 1; margin-bottom: 6px; }
+.spec-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); }
+
+.grading-box {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 20px; margin-bottom: 28px; text-align: left;
+}
+.grading-title {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; text-transform: uppercase;
+  letter-spacing: 2px; color: var(--text-dim); margin-bottom: 12px;
+}
+.grading-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; font-size: 13px; color: var(--text-muted); }
+.grading-row:last-child { margin-bottom: 0; }
+.g-chip { font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 3px 10px; border-radius: 4px; white-space: nowrap; flex-shrink: 0; }
+.g-chip.mc { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(200,169,110,0.2); }
+.g-chip.op { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(93,173,226,0.2); }
+.g-chip.tot { background: var(--green-dim); color: var(--green); border: 1px solid rgba(39,174,96,0.2); }
+
+.start-btn {
+  background: var(--accent); color: #0f0e0c; border: none;
+  padding: 16px 52px; font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; letter-spacing: 1px; text-transform: uppercase;
+  border-radius: 8px; cursor: pointer; transition: all .2s; font-weight: 500;
+}
+.start-btn:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(200,169,110,0.25); }
+.welcome-note { margin-top: 20px; font-size: 11px; color: var(--text-dim); font-family: 'JetBrains Mono', monospace; }
+
+/* ══ EXAM HEADER ══ */
+.exam-header {
+  position: sticky; top: 0;
+  background: rgba(15,14,12,0.97); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 32px; display: flex; align-items: center; gap: 20px; z-index: 100;
+}
+.exam-progress-wrap { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.exam-progress-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-dim); display: flex; justify-content: space-between; }
+.progress-bar-track { height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.progress-bar-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .3s; }
+.exam-timer { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 500; color: var(--accent); min-width: 72px; text-align: right; letter-spacing: 2px; }
+.exam-timer.urgent { color: #e74c3c; animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.45} }
+
+/* ══ EXAM BODY ══ */
+.exam-body { flex: 1; max-width: 800px; width: 100%; margin: 0 auto; padding: 36px 24px 100px; }
+
+.q-section-label {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; text-transform: uppercase;
+  letter-spacing: 2px; color: var(--text-dim); margin-bottom: 18px;
+  display: flex; align-items: center; gap: 10px;
+}
+.q-section-label::after { content:''; flex:1; height:1px; background: var(--border); }
+
+.question-block { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; overflow: hidden; transition: border-color .15s; }
+.question-block.answered { border-color: var(--border2); }
+
+.question-top { padding: 18px 22px 14px; display: flex; gap: 14px; align-items: flex-start; }
+.qn-badge { font-family: 'JetBrains Mono', monospace; font-size: 10px; background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(200,169,110,0.2); padding: 3px 9px; border-radius: 4px; flex-shrink: 0; margin-top: 2px; }
+.qn-badge.open-badge { background: var(--blue-dim); color: var(--blue); border-color: rgba(93,173,226,0.2); }
+.q-text-exam { font-size: 14.5px; line-height: 1.65; color: var(--text); }
+
+.options-exam { padding: 0 18px 18px 54px; display: flex; flex-direction: column; gap: 7px; }
+.opt-exam {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 7px;
+  cursor: pointer; transition: all .15s; background: var(--surface2); color: var(--text);
+}
+.opt-exam:hover { border-color: var(--accent); background: var(--accent-dim); }
+.opt-exam.selected { border-color: var(--accent); background: var(--accent-dim); }
+.opt-dot { width: 18px; height: 18px; border: 2px solid var(--border2); border-radius: 50%; flex-shrink: 0; margin-top: 2px; transition: all .15s; display: flex; align-items: center; justify-content: center; }
+.opt-exam.selected .opt-dot { border-color: var(--accent); background: var(--accent); }
+.opt-dot-inner { width: 6px; height: 6px; border-radius: 50%; background: #0f0e0c; display: none; }
+.opt-exam.selected .opt-dot-inner { display: block; }
+.opt-text-exam { font-size: 13.5px; line-height: 1.5; }
+
+/* ── OPEN QUESTION ── */
+.open-wrap { padding: 0 18px 18px; }
+.open-textarea {
+  width: 100%; background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: 7px; color: var(--text); font-family: 'Source Serif 4', Georgia, serif;
+  font-size: 13.5px; line-height: 1.65; padding: 14px 16px;
+  resize: vertical; min-height: 130px; outline: none; transition: border-color .15s;
+}
+.open-textarea:focus { border-color: var(--accent); }
+.open-textarea::placeholder { color: var(--text-dim); font-style: italic; }
+.open-hint { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-dim); margin-top: 8px; line-height: 1.5; }
+
+/* ══ FOOTER ══ */
+.exam-footer {
+  position: fixed; bottom:0; left:0; right:0;
+  background: rgba(15,14,12,0.97); backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; z-index: 100;
+}
+.footer-info { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-dim); line-height: 1.6; }
+.footer-info strong { color: var(--accent); font-size: 16px; }
+.submit-btn {
+  background: var(--green); color: white; border: none;
+  padding: 12px 36px; font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
+  border-radius: 7px; cursor: pointer; transition: all .2s;
+}
+.submit-btn:hover { background: #2ecc71; transform: translateY(-1px); }
+.submit-btn:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+
+/* ══ RESULTS ══ */
+#screen-results { }
+.results-hero {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 48px 32px 36px; text-align: center;
+}
+.results-grade { font-family: 'Playfair Display', serif; font-size: 96px; font-weight: 900; line-height: 1; margin-bottom: 6px; }
+.results-grade.pass { color: var(--accent); }
+.results-grade.fail { color: var(--red); }
+.results-grade.honors { color: var(--accent2); text-shadow: 0 0 40px rgba(232,201,138,0.35); }
+.results-verdict { font-family: 'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: var(--text-dim); margin-bottom: 28px; }
+
+.results-breakdown {
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 10px;
+  max-width: 640px; margin: 0 auto 24px;
+}
+.rb-cell { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 14px 10px; text-align: center; }
+.rb-val { font-family: 'Playfair Display', serif; font-size: 26px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+.rb-lbl { font-family: 'JetBrains Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); }
+.rb-val.green { color: var(--green); }
+.rb-val.red { color: var(--red); }
+.rb-val.gold { color: var(--accent); }
+.rb-val.blue { color: var(--blue); }
+
+/* Grading note */
+.grading-note {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-dim);
+  max-width: 480px; margin: 0 auto; line-height: 1.7;
+}
+.grading-note span { color: var(--text-muted); }
+
+/* ══ REVIEW ══ */
+.results-body { max-width: 820px; margin: 0 auto; padding: 36px 24px 80px; }
+.review-section-title {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; text-transform: uppercase;
+  letter-spacing: 2px; color: var(--text-dim); margin: 28px 0 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.review-section-title::after { content:''; flex:1; height:1px; background: var(--border); }
+
+.review-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; overflow: hidden; }
+.review-card.correct-card { border-left: 3px solid var(--green); }
+.review-card.wrong-card  { border-left: 3px solid var(--red); }
+.review-card.skip-card   { border-left: 3px solid var(--border2); }
+.review-card.open-card   { border-left: 3px solid var(--blue); }
+
+.review-top { padding: 14px 18px; display: flex; gap: 12px; align-items: flex-start; }
+.r-badge { font-family: 'JetBrains Mono', monospace; font-size: 9px; padding: 3px 8px; border-radius: 4px; flex-shrink: 0; margin-top: 2px; white-space: nowrap; }
+.r-badge.ok  { background: var(--green-dim); color: var(--green); }
+.r-badge.ko  { background: var(--red-dim); color: #e74c3c; }
+.r-badge.sk  { background: rgba(90,82,72,0.3); color: var(--text-dim); }
+.r-badge.op  { background: var(--blue-dim); color: var(--blue); }
+.review-q-text { font-size: 13.5px; line-height: 1.55; color: var(--text); }
+
+.review-opts { padding: 0 18px 14px 52px; display: flex; flex-direction: column; gap: 5px; }
+.r-opt { font-size: 12.5px; padding: 7px 12px; border-radius: 5px; color: var(--text-dim); border: 1px solid transparent; }
+.r-opt.r-correct { background: rgba(39,174,96,0.08); border-color: rgba(39,174,96,0.25); color: #27ae60; }
+.r-opt.r-wrong   { background: rgba(192,57,43,0.08); border-color: rgba(192,57,43,0.25); color: #e74c3c; text-decoration: line-through; }
+.r-opt .tag { font-family: 'JetBrains Mono', monospace; font-size: 9px; margin-right: 5px; }
+
+/* ── OPEN SELF-SCORE ── */
+.open-review-wrap { padding: 0 18px 16px; }
+.your-answer-box {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+  padding: 12px 14px; font-size: 13px; color: var(--text-muted);
+  margin-bottom: 12px; font-style: italic; line-height: 1.6;
+}
+.your-answer-box strong { display: block; font-family: 'JetBrains Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); margin-bottom: 6px; font-style: normal; }
+
+.model-answer-box {
+  background: rgba(93,173,226,0.06); border: 1px solid rgba(93,173,226,0.18);
+  border-radius: 6px; padding: 12px 14px; font-size: 13px; color: #7fb3d3;
+  line-height: 1.65; margin-bottom: 14px;
+}
+.model-answer-box strong { display: block; font-family: 'JetBrains Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--blue); margin-bottom: 6px; }
+
+/* Self-score selector */
+.self-score-wrap { margin-top: 4px; }
+.self-score-label { font-family: 'JetBrains Mono', monospace; font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); margin-bottom: 10px; display: block; }
+.score-options { display: flex; gap: 8px; flex-wrap: wrap; }
+.score-opt {
+  display: flex; flex-direction: column; gap: 4px;
+  background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: 8px; padding: 10px 14px; cursor: pointer;
+  transition: all .15s; min-width: 110px; flex: 1;
+}
+.score-opt:hover { border-color: var(--accent); }
+.score-opt.selected-0 { border-color: var(--red); background: var(--red-dim); }
+.score-opt.selected-1 { border-color: #e67e22; background: rgba(230,126,34,0.1); }
+.score-opt.selected-2 { border-color: #f1c40f; background: rgba(241,196,15,0.08); }
+.score-opt.selected-3 { border-color: var(--green); background: var(--green-dim); }
+.score-opt-num { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 700; line-height: 1; }
+.selected-0 .score-opt-num { color: var(--red); }
+.selected-1 .score-opt-num { color: #e67e22; }
+.selected-2 .score-opt-num { color: #f1c40f; }
+.selected-3 .score-opt-num { color: var(--green); }
+.score-opt-desc { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-dim); line-height: 1.4; }
+
+.open-score-total {
+  margin-top: 20px; padding: 14px 18px;
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.open-score-total span { color: var(--accent); font-size: 18px; font-weight: 600; }
+
+/* Final score recalc */
+.final-score-banner {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px 24px; margin-top: 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 20px;
+  flex-wrap: wrap;
+}
+.fsb-label { font-family: 'JetBrains Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); }
+.fsb-score { font-family: 'Playfair Display', serif; font-size: 42px; font-weight: 900; color: var(--accent); line-height: 1; }
+.fsb-breakdown { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-dim); line-height: 1.8; }
+.fsb-verdict { font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 6px 16px; border-radius: 20px; }
+.fsb-verdict.pass { background: var(--green-dim); color: var(--green); border: 1px solid rgba(39,174,96,0.25); }
+.fsb-verdict.fail { background: var(--red-dim); color: #e74c3c; border: 1px solid rgba(192,57,43,0.25); }
+.fsb-verdict.honors { background: var(--accent-dim); color: var(--accent); border: 1px solid rgba(200,169,110,0.25); }
+
+.retry-btn {
+  display: block; width: fit-content; margin: 36px auto 0;
+  background: transparent; color: var(--accent); border: 1.5px solid var(--accent);
+  padding: 13px 40px; font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; letter-spacing: 1px; text-transform: uppercase;
+  border-radius: 7px; cursor: pointer; transition: all .2s;
+}
+.retry-btn:hover { background: var(--accent); color: #0f0e0c; }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+@media (max-width: 600px) {
+  .exam-specs, .results-breakdown { grid-template-columns: 1fr 1fr; }
+  .score-options { flex-direction: column; }
+  .final-score-banner { flex-direction: column; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ WELCOME ══ -->
+<div class="screen active" id="screen-welcome">
+  <div class="welcome-inner" style="margin:auto;">
+    <div class="welcome-badge">eCampus · Ingegneria Industriale · D.M. 270/04</div>
+    <h1 class="welcome-title">Simulatore<br><em>Esame</em> Fisica</h1>
+    <p class="welcome-subtitle">Prof.ssa Buzzi Aurora · Lezioni 049–072</p>
+
+    <div class="exam-specs">
+      <div class="spec-card">
+        <div class="spec-num">24</div>
+        <div class="spec-label">Domande<br>Chiuse · 1 pt</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-num">2</div>
+        <div class="spec-label">Domande<br>Aperte · 3 pt</div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-num">30</div>
+        <div class="spec-label">Punti<br>Totali</div>
+      </div>
+    </div>
+
+    <div class="grading-box">
+      <div class="grading-title">📋 Griglia di valutazione ufficiale</div>
+      <div class="grading-row">
+        <span class="g-chip mc">CHIUSE</span>
+        0 = risposta errata &nbsp;·&nbsp; 1 = risposta corretta
+      </div>
+      <div class="grading-row">
+        <span class="g-chip op">APERTE</span>
+        0 = mancante/errata &nbsp;·&nbsp; 1 = parziale &nbsp;·&nbsp; 2 = corretta con imprecisioni &nbsp;·&nbsp; 3 = corretta, articolata, linguaggio appropriato
+      </div>
+      <div class="grading-row" style="margin-top:6px;">
+        <span class="g-chip tot">TOTALE</span>
+        24 (chiuse) + 6 (aperte) = <strong style="color:var(--text);margin-left:4px;">30/30 massimo</strong>
+      </div>
+    </div>
+
+    <button class="start-btn" onclick="startExam()">Inizia l'Esame →</button>
+    <p class="welcome-note">Domande pescate casualmente dal paniere ad ogni tentativo · Opzioni rimescolate</p>
+  </div>
+</div>
+
+<!-- ══ EXAM ══ -->
+<div class="screen" id="screen-exam">
+  <div class="exam-header">
+    <div class="exam-progress-wrap">
+      <div class="exam-progress-label">
+        <span id="hdr-label">Risposte: 0 / 26</span>
+        <span id="hdr-pts">Punti mc: 0 / 24</span>
+      </div>
+      <div class="progress-bar-track"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+    </div>
+    <div class="exam-timer" id="timer-display">60:00</div>
+  </div>
+
+  <div class="exam-body" id="exam-body"></div>
+
+  <div class="exam-footer">
+    <div class="footer-info">
+      Risposte date: <strong id="answered-count">0</strong> / 26
+    </div>
+    <button class="submit-btn" id="submit-btn" onclick="submitExam()" disabled>
+      Consegna →
+    </button>
+  </div>
+</div>
+
+<!-- ══ RESULTS ══ -->
+<div class="screen" id="screen-results">
+  <div class="results-hero">
+    <div class="results-grade" id="res-grade">—</div>
+    <div class="results-verdict" id="res-verdict">—</div>
+    <div class="results-breakdown">
+      <div class="rb-cell"><div class="rb-val green" id="rb-correct">—</div><div class="rb-lbl">Corrette</div></div>
+      <div class="rb-cell"><div class="rb-val red"   id="rb-wrong">—</div><div class="rb-lbl">Errate</div></div>
+      <div class="rb-cell"><div class="rb-val gold"  id="rb-mc-pts">—</div><div class="rb-lbl">Pt. Chiuse</div></div>
+      <div class="rb-cell"><div class="rb-val blue"  id="rb-time">—</div><div class="rb-lbl">Tempo</div></div>
+    </div>
+    <div class="grading-note">
+      <span>Punteggio chiuse:</span> ogni risposta corretta = 1 pt (max 24).<br>
+      <span>Punteggio aperte:</span> autovaluta la tua risposta 0–3 pt qui sotto (max 6).
+    </div>
+  </div>
+
+  <div class="results-body" id="results-body"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// QUESTION BANK
+// ══════════════════════════════════════════
+const MC_QUESTIONS = [
+  {l:0,t:"Due particelle di carica positiva q e 4q separate da distanza d. Posizione x (da q) dove la forza netta su una terza carica è zero:",o:["x = d/2","x = d/3","x = 2d","x = d/4"],a:1},
+  {l:0,t:"Campo elettrico uniforme, particella di carica −2.0·10⁻⁹ C soggetta a forza 3.0·10⁻⁶ N verso il basso. Intensità e verso del campo:",o:["E = 500 V/m verso l'alto","E = 1.5 kV/m verso l'alto","E = 1500 N/C verso l'alto","E = 1500 N/C verso il basso"],a:2},
+  {l:0,t:"Se la distanza tra due cariche di segno opposto viene raddoppiata, la forza di attrazione:",o:["aumenta di un fattore 2","aumenta di un fattore 4","non varia","diminuisce di un fattore 4"],a:3},
+  {l:0,t:"Due cariche Q₁=50 mC e Q₂=1 mC separate da distanza r. Qual è la forza più intensa?",o:["Q₁ esercita forza maggiore","Dato la conservatività, la forza su Q₂ è maggiore","Per azione e reazione le forze sono uguali","Q₁ avverte forza maggiore"],a:2},
+  {l:1,t:"Quattro cariche uguali ai vertici di un quadrato. La forza su una di esse può essere nulla?",o:["Sì, se le altre tre hanno lo stesso segno","No, in nessun caso","Sì, se i vertici opposti hanno lo stesso segno","Sì, se tutte hanno lo stesso segno"],a:0},
+  {l:1,t:"Tre cariche A, B, C. C subisce 3 N da A e 4 N da B. La forza totale su C è:",o:["5 N","1 N","Non ho elementi sufficienti per rispondere","7 N"],a:2},
+  {l:1,t:"Carica negativa al centro di un'asta con due cariche positive uguali agli estremi. La carica negativa è:",o:["in equilibrio instabile","n.e.s.p.r.","in equilibrio stabile","in non equilibrio"],a:2},
+  {l:1,t:"La forza tra due cariche puntiformi a distanza r dipende dalla distanza con proporzionalità:",o:["quadratica","diretta","quadratica inversa","inversa"],a:2},
+  {l:1,t:"Distanza tra carica negativa e positiva raddoppiata. La forza:",o:["raddoppia","quadruplica","diventa la metà","diventa un quarto"],a:3},
+  {l:1,t:"Distanza tra carica negativa e positiva dimezzata. La forza:",o:["diventa la metà","diventa un quarto","quadruplica","raddoppia"],a:2},
+  {l:1,t:"Due palline cariche distano 20 cm. La forza quadruplica dopo lo spostamento. Nuova distanza:",o:["10 cm","5 cm","80 cm","40 cm"],a:0},
+  {l:1,t:"Carica di A dimezzata e distanza raddoppiata. La nuova forza (era F):",o:["F/4","2F","F/2","F/8"],a:3},
+  {l:2,t:"Le linee di campo di una carica isolata puntiforme sono:",o:["entranti sia se positiva sia se negativa","uscenti se negativa, entranti se positiva","uscenti se positiva, entranti se negativa","uscenti sia se positiva sia se negativa"],a:2},
+  {l:2,t:"Carica da 0.2 mC, massa 5 g. Intensità del campo verticale per tenerla sospesa nel vuoto:",o:["120 N/C","2 N/C","0.2 N/C","245 N/C"],a:3},
+  {l:2,t:"C'è campo elettrico in un punto P se:",o:["in P c'è una carica elettrica","un corpo di prova carico in P sperimenta una forza elettrica","in P c'è un corpo di prova","una carica magnetica in P subisce una forza"],a:1},
+  {l:2,t:"Da che cosa dipende il vettore campo elettrico (indipendentemente dalla carica di prova)?",o:["Dal valore di q","Né dal valore né dal segno di q","Dal segno di q","Dal valore e dal segno di q"],a:1},
+  {l:2,t:"L'accelerazione di una particella carica in un campo è:",o:["variabile","costante","dipende dal tipo di carica","costante se il campo è uniforme"],a:3},
+  {l:3,t:"La forza su una particella con data carica è determinata:",o:["dal potenziale elettrico","dalla somma di campo e potenziale","dal vettore campo elettrico","da nessuno di questi"],a:2},
+  {l:3,t:"Dipolo in campo uniforme E=40 N/C; momento torcente da 0 a 10⁻²⁶ N·m. Modulo del momento di dipolo:",o:["2.5·10⁻²⁸ C·m","6.2·10⁻²⁸ C·m","1·10⁻²⁶ C·m","4.1·10⁻²⁷ C·m"],a:0},
+  {l:4,t:"Regione sferica con campo elettrico ma senza cariche interne. Il flusso attraverso la superficie:",o:["è certamente positivo","non è determinabile dalle informazioni date","è certamente nullo","è positivo o negativo se c'è campo"],a:2},
+  {l:4,t:"In quali condizioni vale il teorema di Gauss?",o:["Solo se la somma delle cariche è diversa da zero","Solo se la superficie è chiusa","Per qualsiasi superficie nello spazio","Solo se la superficie è sferica"],a:1},
+  {l:4,t:"Campo elettrostatico di carica in guscio sferico di raggio R (spessore infinitesimo), per r < R:",o:["diminuisce come r²","diminuisce come 1/r","aumenta proporzionalmente a r","è nullo"],a:3},
+  {l:4,t:"Un cubo con carica uniformemente distribuita nel volume. Si può calcolare il campo con la legge di Gauss?",o:["No: in simmetria cubica Gauss è falsa","Sì, ma solo all'interno del cubo","Sì, ma solo approssimativamente a grandi distanze","Sì, ovunque"],a:3},
+  {l:4,t:"Sfera R=30 cm, carica 0.8 μC uniforme. Campo in punto a r=25 cm dal centro:",o:["315 V/m","66.6 kV/m","12.4 kV/m","666 V/m"],a:2},
+  {l:5,t:"Q₁=6 nC e Q₂=−3 nC, distano 80 cm. Potenziale nel punto P a 20 cm da Q₁:",o:["354.0 V","622.4 V","224.8 V","161.6 V"],a:2},
+  {l:5,t:"Carica Q=0.1 C in campo uniforme E=75 N/C lungo x. Variazione energia potenziale in x=2 m:",o:["−15 J","15 J","−1.5 J","1.5 J"],a:0},
+  {l:5,t:"Lavoro per spostare 8 μC da V=0 a V=75 V:",o:["L=600 μJ","L=400 μJ","L=0.8 mJ","L=300 μJ"],a:0},
+  {l:5,t:"Elettrone accelerato da ΔV. Se ΔV quadruplica, la velocità finale:",o:["rimane uguale","raddoppia","quadruplica","ottuplica"],a:1},
+  {l:6,t:"Campo generato da un filo uniformemente carico di lunghezza indefinita:",o:["diminuisce come r²","aumenta con r","è proporzionale a 1/r","è uniforme nello spazio"],a:2},
+  {l:6,t:"Unità di misura della costante dielettrica del vuoto ε₀:",o:["J","C²/(N·m²)","N/(C²·m²)","C²/m²"],a:1},
+  {l:6,t:"Campo generato da un piano indefinito uniformemente carico:",o:["varia come 1/r","è uniforme nello spazio","varia come 1/r²","è inversamente proporzionale a r"],a:1},
+  {l:6,t:"Campo in guscio sferico di raggio R (spessore infinitesimo) per r < R:",o:["è nullo","decresce come r²","decresce come 1/r","aumenta con r"],a:0},
+  {l:6,t:"Campo in sfera piena di raggio R per r < R (all'interno della sfera):",o:["è nullo","è costante","aumenta proporzionalmente alla distanza dal centro","decresce come r²"],a:2},
+  {l:6,t:"Il potenziale elettrico è una grandezza vettoriale (come il campo elettrico)?",o:["Falso — il potenziale è scalare","Sono entrambi scalari","Vero","Dipende dai casi"],a:0},
+  {l:7,t:"Le superfici equipotenziali in un campo elettrico:",o:["sono sempre perpendicolari tra loro","formano sempre regioni chiuse dello spazio","sono sempre parallele alle linee di campo","formano sempre angoli retti con le linee di campo"],a:3},
+  {l:7,t:"In un conduttore carico di forma qualsiasi, la carica:",o:["è più densa dove il raggio di curvatura è maggiore","è distribuita uniformemente nel volume","è più densa dove il raggio di curvatura è minore","è distribuita uniformemente sulla superficie"],a:2},
+  {l:7,t:"Due sfere conduttrici identiche messe a contatto. Che frazione della carica iniziale rimane sulla prima?",o:["la stessa carica","un quarto","nessuna carica","la metà"],a:3},
+  {l:8,t:"Raddoppiando la carica posseduta da un condensatore, la sua capacità:",o:["rimane la stessa","bisogna conoscere il valore della carica","raddoppia","dimezza"],a:0},
+  {l:8,t:"C₁=10 μF in serie con il parallelo di C₂=10 μF e C₃=2 μF. Capacità equivalente del circuito:",o:["10.9 μF","6.25 μF","11.7 μF","5.45 μF"],a:3},
+  {l:8,t:"Due lastre parallele, ΔV=50 V, distanza 5.0 cm. Campo elettrico tra le lastre:",o:["E=1000 V/m","E=2500 V/m","E=10 V/m","E=250 V/m"],a:0},
+  {l:8,t:"Due condensatori in parallelo collegati a una batteria. Aggiungendo un terzo condensatore in parallelo, cosa cambia?",o:["La d.d.p. su ogni condensatore e la capacità equivalente","La capacità equivalente e la carica su ogni armatura","Niente","Solo la capacità equivalente"],a:1},
+  {l:9,t:"Due condensatori da 10 μF in parallelo. Capacità equivalente:",o:["20 μF","100 μF","10 μF","5 μF"],a:0},
+  {l:9,t:"Due condensatori da 10 μF in serie. Capacità equivalente:",o:["10 μF","20 μF","5 μF","100 μF"],a:2},
+  {l:9,t:"C₁=1.60 μF e C₂=2.40 μF collegati in serie. Capacità equivalente:",o:["4 μF","0.96 μF","2 μF","0.5 μF"],a:1},
+  {l:9,t:"Condensatore piano con aria. La capacità diminuisce se:",o:["allontaniamo le armature","aumentiamo la superficie delle armature","avviciniamo le armature","inseriamo un dielettrico tra le armature"],a:0},
+  {l:9,t:"Condensatore da 3 μF caricato a 10 V. Energia accumulata:",o:["1.5×10⁻⁶ J","1.5×10⁻⁴ J","3×10⁻⁴ J","3×10⁻⁶ J"],a:1},
+  {l:9,t:"C₁=1.60 μF e C₂=2.40 μF collegati in parallelo. Capacità equivalente:",o:["0.96 μF","4 μF","12 μF","2 μF"],a:1},
+  {l:10,t:"Dielettrico εᵣ inserito in condensatore vuoto C₀. Nuova capacità:",o:["diminuisce: C=εᵣC₀","aumenta: C=εᵣC₀","aumenta: C=εᵣε₀C₀","rimane la stessa"],a:1},
+  {l:10,t:"Potenziale elettrostatico attorno a una carica puntiforme Q:",o:["è costante","aumenta proporzionalmente alla distanza","diminuisce come 1/r","diminuisce come 1/r²"],a:2},
+  {l:10,t:"La rigidità dielettrica di un mezzo:",o:["è il rapporto C/C₀","è il massimo campo prima della scarica","è la densità di carica nel dielettrico","è la massima carica accumulabile sulle armature"],a:1},
+  {l:10,t:"Campo elettrico esterno a un conduttore carico, in prossimità della sua superficie:",o:["ortogonale alla superficie, modulo Q/ε₀","ortogonale alla superficie, modulo σ/ε₀ locale","nullo","parallelo alla superficie, modulo σ/ε₀"],a:1},
+  {l:12,t:"Carica 4 mC, massa 2 mg, a 3 m da piano infinito carico, accelerazione 4 m/s². Densità di carica del piano:",o:["3.54·10⁻¹¹ C/m²","1.77·10⁻¹¹ C/m²","8.85·10⁻¹¹ C/m²","7.1·10⁻¹¹ C/m²"],a:0},
+  {l:13,t:"Corrente di 16 A per 3 minuti. Carica attraverso il conduttore:",o:["1440 J","2880 C","1440 C","2880 J"],a:1},
+  {l:13,t:"In un filo scorre 3 A per un'ora. Carica transitata:",o:["5600 C","10800 C","5600 J","10800 J"],a:1},
+  {l:13,t:"L'intensità di corrente elettrica è per definizione:",o:["prodotto resistenza × tempo","prodotto carica × tempo","carica diviso intervallo unitario di tempo","carica diviso intervallo di tempo"],a:3},
+  {l:13,t:"Corrente di 2.5 A per 4 minuti. Carica totale:",o:["Q=10 C","Q=100 C","Q=600 C","Q=0.06 C"],a:2},
+  {l:13,t:"Attraverso la sezione di una lampadina passano 1.6·10¹⁹ elettroni al secondo. Corrente:",o:["2.56 A","1 A","1.6·10¹⁹ A","1.6·10⁻¹⁹ A"],a:0},
+  {l:13,t:"Che corrente occorre per far transitare in un filo 600 C in un minuto?",o:["10 A","20 A","600 A","60 A"],a:0},
+  {l:14,t:"Due resistenze da 10 Ω in serie. Resistenza equivalente:",o:["10 Ω","n.e.s.p.r.","5 Ω","20 Ω"],a:3},
+  {l:14,t:"Due resistenze da 10 Ω in parallelo. Resistenza equivalente:",o:["5 Ω","n.e.s.p.r.","10 Ω","20 Ω"],a:0},
+  {l:14,t:"Quale resistenza collegare a generatore 9 V per avere corrente 2 A?",o:["9 Ω","4.5 Ω","81 Ω","2.25 Ω"],a:1},
+  {l:14,t:"Tre resistori diversi in serie. Quello con R maggiore conduce:",o:["più corrente degli altri","meno corrente degli altri","la stessa corrente degli altri","bisogna conoscere i valori di R"],a:2},
+  {l:14,t:"Tre resistori diversi in parallelo alla stessa d.d.p. Quello con R minore conduce:",o:["n.e.s.p.r.","la stessa corrente","meno corrente","più corrente"],a:3},
+  {l:14,t:"Tre resistori diversi in parallelo alla stessa d.d.p. Quello con R maggiore conduce:",o:["meno corrente","n.e.s.p.r.","la stessa corrente","più corrente"],a:0},
+  {l:14,t:"20 Ω e 40 Ω in parallelo. Resistenza equivalente:",o:["60 Ω","13.3 Ω","5 Ω","30 Ω"],a:1},
+  {l:14,t:"La prima legge di Ohm si enuncia come:",o:["V·2i=R","V/R=i","R/i=V","V·i=R"],a:1},
+  {l:15,t:"Stufa elettrica 220 V, 500 W. Sua resistenza:",o:["~100 Ω","~1 Ω","~10 Ω","~1000 Ω"],a:0},
+  {l:15,t:"Qualunque conduttore ohmico percorso da corrente dissipa per effetto Joule:",o:["solo se la corrente è costante nel tempo","è sempre falso","è sempre vero","qualche volta è falso"],a:2},
+  {l:15,t:"Faro auto da 40 W, batteria 12 V. Resistenza del faro:",o:["R=3.6 Ω","R=4.8 Ω","R=1.2 Ω","R=2.4 Ω"],a:0},
+  {l:15,t:"Resistenza da 10 Ω, potenza massima 5 W, collegata a pila 9 V:",o:["La resistenza riesce a dissipare","La resistenza brucia","Non ho elementi sufficienti","La resistenza si espande"],a:1},
+  {l:15,t:"Lampadina da 100 W per dissipare 30 kJ. Tempo impiegato:",o:["5 minuti","10 minuti","1 ora","1 minuto"],a:0},
+  {l:15,t:"Potenza elettrica P è data dall'espressione:",o:["P=i·V","P=i/R","P=i·R","P=i/V"],a:0},
+  {l:15,t:"Resistenza da 22 Ω attaccata alla rete 220 V. Corrente:",o:["2200 A","220 A","110 A","10 A"],a:3},
+  {l:16,t:"Due lampade 100 Ω e 200 Ω in serie a generatore 100 V. Corrente nel generatore:",o:["I=0.22 A","I=0.11 A","I=0.33 A","I=0.44 A"],a:2},
+  {l:16,t:"Stesse lampade (100 Ω e 200 Ω) in parallelo a generatore 100 V. Corrente nel generatore:",o:["I=1.0 A","I=2.0 A","I=0.5 A","I=1.5 A"],a:3},
+  {l:16,t:"Batteria 12 V e 50 Ah. Il dato '50 Ah' rappresenta:",o:["la possibile durata della batteria","la corrente massima che può circolare","la quantità di carica che può fornire","la capacità termica della batteria"],a:2},
+  {l:18,t:"Condensatore dimezza la carica in 20 ms con resistenza 40 Ω. Capacità del condensatore:",o:["0.14 mF","0.08 mF","1 mF","0.72 mF"],a:3},
+  {l:19,t:"Ago magnetico in zona con campo magnetico risulta sottoposto:",o:["a forza che agisce sul polo nord","a una coppia di forze","a forza e coppia di forze","a forza che agisce sul polo sud"],a:1},
+  {l:19,t:"Frammentando un magnete si possono creare in linea di principio:",o:["infinite calamite","nessuna, perde la magnetizzazione","finché la magnetizzazione non si esaurisce","un numero qualsiasi purché pari"],a:0},
+  {l:19,t:"Campo magnetico e campo elettrostatico:",o:["B non è conservativo, E è conservativo","B è conservativo, E non lo è","entrambi sono conservativi","entrambi non sono conservativi"],a:0},
+  {l:20,t:"Un campo magnetico uniforme esercita forza su una carica puntiforme quando:",o:["la carica si muove con velocità ortogonale al campo","la carica è ferma","Nessuna delle precedenti","la carica si muove con velocità parallela al campo"],a:0},
+  {l:20,t:"La forza magnetica che agisce su una carica elettrica:",o:["è parallela alla velocità della carica","è parallela alla direzione del campo magnetico","può modificarne l'energia cinetica","non può modificarne il modulo della velocità"],a:3},
+  {l:20,t:"Protone con velocità 5·10⁶ m/s nella stessa direzione di un campo B=1.5 T. Forza di Lorentz:",o:["F=2·10⁻¹³ N","F=12·10⁻¹¹ N","F=0 N","F=12·10⁻¹³ N"],a:2},
+  {l:20,t:"Nell'espressione F=qv×B, quali vettori sono sempre perpendicolari tra loro?",o:["ogni vettore è ⊥ agli altri due","la velocità è ⊥ al campo","la forza è ⊥ alla velocità","non ci sono due vettori sempre ⊥"],a:2},
+  {l:21,t:"Forza tra due fili conduttori rettilinei paralleli percorsi da correnti uguali ed equiverse:",o:["è ortogonale ai fili e repulsiva","è nulla","è ortogonale ai fili e attrattiva","è parallela ai fili"],a:2},
+  {l:21,t:"Un filo rettilineo è percorso da corrente. Possiamo accorgercene con:",o:["una cellula fotoelettrica","una bussola","un metronomo","uno stetoscopio"],a:1},
+  {l:21,t:"Il momento torcente su una spira percorsa da corrente in campo magnetico dipende:",o:["da corrente, superficie, campo e orientamento della spira nel campo","solo da corrente e angolo con il campo","solo da area e campo","solo da corrente e campo"],a:0},
+  {l:22,t:"Il campo magnetico lungo l'asse di una spira circolare percorsa da corrente:",o:["è diretto come la corrente nella spira","è minimo al centro della spira","è proporzionale al quadrato della corrente","è massimo al centro della spira"],a:3},
+  {l:22,t:"Le linee di forza del campo magnetico intorno a un filo rettilineo molto lungo percorso da corrente I:",o:["sono circonferenze parallele al filo","sono circonferenze concentriche con il filo","sono rette parallele al filo","sono rette uscenti dal filo"],a:1},
+  {l:22,t:"A 2.4 cm da un filo conduttore molto lungo, il campo magnetico ha modulo 16 μT. Intensità di corrente nel filo:",o:["I=2.82 A","I=4.07 A","I=1.92 A","I=1.64 A"],a:2},
+  {l:23,t:"Il campo magnetico in un solenoide ideale di lunghezza infinita non dipende:",o:["dal materiale all'interno del solenoide","dal raggio del solenoide","dalla corrente che scorre nel solenoide","dal numero delle spire per unità di lunghezza"],a:1},
+  {l:23,t:"Cosa afferma il teorema di Ampere?",o:["V=iR","Forza per unità di lunghezza tra fili a 1 m con 1 A = μ₀/(2π)","La circuitazione di B lungo linea chiusa = μ₀ × somma correnti concatenate","F=qv×B"],a:2},
+  {l:23,t:"Solenoide lungo 10 cm, 600 spire, corrente 20 A. Campo magnetico interno:",o:["B=6 μT","B=23 mT","B=151 mT","B=226 mT"],a:2},
+  // ── LEZIONE 056 aggiuntive (Q04-Q08 are open - already in OPEN_QUESTIONS) ──
+  // Q01-Q03 già presenti. Nessuna MC aggiuntiva.
+
+  // ── LEZIONE 057 aggiuntive ──
+  {l:8,t:"Due condensatori uguali connessi in serie a una pila da 10 V, energia immagazzinata 120 J. Capacità di ciascun condensatore:",o:["9.6 F","4.8 F","2.4 F","48 F"],a:1},
+  {l:8,t:"In un conduttore carico di forma qualsiasi, la carica è: (L057)",o:["più densa dove raggio di curvatura è maggiore","distribuita uniformemente nel volume","più densa dove raggio di curvatura è minore","distribuita uniformemente sulla superficie"],a:2},
+
+  // ── LEZIONE 058 aggiuntive ──
+  {l:9,t:"Due condensatori da 20 μF in parallelo. Capacità equivalente:",o:["40 μF","80 μF","10 μF","20 μF"],a:0},
+  {l:9,t:"Due condensatori da 20 μF in serie. Capacità equivalente:",o:["20 μF","10 μF","80 μF","40 μF"],a:1},
+
+  // ── LEZIONE 059 aggiuntive ──
+  {l:10,t:"In una regione di campo elettrico uniforme lungo x: in x=2 m il potenziale è 150 V, in x=5 m è 450 V. Campo elettrico:",o:["100 V/m","300 V/m","−300 V/m","−100 V/m"],a:3},
+  {l:10,t:"Come si definisce la capacità elettrica di un conduttore carico?",o:["Rapporto carica/d.d.p. tra le armature","Rapporto costante tra carica e potenziale del conduttore: C=Q/V","Prodotto tra carica e potenziale: C=QV","Prodotto tra carica e campo all'interno: C=QE"],a:1},
+  {l:10,t:"Campo elettrostatico all'interno di sfera conduttrice di raggio R e carica Q:",o:["Q/(4πε₀R²)","Q/(4πε₀R)","Q/(πε₀R)","0"],a:3},
+  {l:10,t:"Potenziale di una sfera conduttrice di raggio R e carica Q:",o:["Q/(πε₀R)","Q/(4πε₀R)","0","Q/(4πε₀R²)"],a:1},
+  {l:10,t:"Capacità equivalente di una coppia di condensatori in parallelo:",o:["prodotto delle capacità dei singoli","somma delle capacità dei singoli","rapporto tra le capacità dei singoli","inverso della somma degli inversi"],a:1},
+  {l:10,t:"Energia elettrostatica di un condensatore di capacità C caricato con carica Q:",o:["Q/V","½QV","Q/C","CV"],a:1},
+
+  // ── LEZIONE 063 aggiuntive ──
+  {l:14,t:"Due resistenze 20 Ω e 40 Ω in parallelo tra loro, in serie con resistenza 10 Ω. Resistenza equivalente totale:",o:["60 Ω","40 Ω","10 Ω","20 Ω"],a:3},
+  {l:14,t:"Corrente in circuito con pila 9 V e due resistenze 5 Ω e 10 Ω in serie:",o:["0.3 A","10 A","0.6 A","1 A"],a:2},
+  {l:14,t:"Tre resistori diversi collegati in serie. Quello con R minore:",o:["meno corrente degli altri","bisogna conoscere il valore di R","più corrente degli altri","la stessa corrente degli altri"],a:3},
+  {l:14,t:"Tre resistori uguali in serie, quello posto al centro: (identico ai fianchi?)",o:["bisogna conoscere il valore di R","meno potenza degli altri","più potenza degli altri","la stessa potenza degli altri"],a:3},
+  {l:14,t:"20 Ω e 40 Ω in serie. Resistenza equivalente:",o:["10 Ω","60 Ω","13.3 Ω","30 Ω"],a:1},
+  {l:14,t:"Si vuole far circolare 10 mA in R₀=400 Ω con pila da 9 V. Quale resistenza aggiuntiva R₁ serve?",o:["R₁=800 Ω in parallelo","R₁=200 Ω in parallelo","R₁=200 Ω in serie","R₁=800 Ω in serie"],a:3},
+
+  // ── LEZIONE 064 aggiuntive ──
+  {l:15,t:"Una centrale elettrica sviluppa 5 MW. Che cosa significa?",o:["Compie 5 MJ in un secondo","Compie 5 MJ in un'ora","Compie 1000 J in 5000 s","Compie 5000 J in 1000 s"],a:0},
+  {l:15,t:"Su un trapano elettrico c'è scritto 500 W. Che cosa significa?",o:["Riceve 500 J di energia ogni secondo","La corrente massima è 500 A","Necessita di 500 J totali","Si collega a 500 V"],a:0},
+  {l:15,t:"Potenza circuito domestico 3 kW, tensione 220 V. Corrente massima:",o:["Nel circuito possono passare 3000 C in un'ora","Non possono funzionare contemporaneamente 3 kW","Corrente massima circa 13.6 A","Passano 3 A per 1000 ore"],a:2},
+  {l:15,t:"Un dispositivo produce 2.5 W per 10 minuti. Calore prodotto:",o:["25 J","1500 cal","1500 J","25 cal"],a:2},
+  {l:15,t:"Resistenza 10 Ω collegata a pila 9 V. Potenza dissipata:",o:["8.1 W","81 J","81 W","8.1 J"],a:0},
+  {l:15,t:"Tensione massima applicabile a resistenza 10 Ω con potenza massima 10 W:",o:["3.3 V","100 V","1 V","10 V"],a:3},
+  {l:15,t:"In resistore con corrente i si produce calore Q. Se la corrente diventa 0.5·i (a parità di tempo e R):",o:["Q/2","Q/4","Q·2","Q non cambia"],a:1},
+  {l:15,t:"Resistenza alimentata da 12 V eroga 40 W. Resistenza: (L064)",o:["0.8 Ω","3.3 Ω","36 Ω","3.6 Ω"],a:3},
+
+  // ── LEZIONE 065 aggiuntive ──
+  {l:16,t:"Ad una batteria ideale 1.5 V sono collegate in parallelo due resistenze. Corrente totale 50 mA, una resistenza è 60 Ω. L'altra vale:",o:["R=100 Ω","R=80 Ω","R=20 Ω","R=60 Ω"],a:3},
+  {l:16,t:"Lampadina assorbe 300 mA da batteria 1.5 V. Resistenza della lampadina:",o:["R=0.45 Ω","R=4.0 Ω","R=5.0 Ω","R=4.5 Ω"],a:2},
+
+  // ── LEZIONE 069 aggiuntive ──
+  {l:20,t:"Due cariche q₁ e q₂=4q₁ con velocità v₁ e v₂=2v₁, stesso campo B perpendicolare. Rapporto F₁/F₂ delle forze:",o:["2","1/2","4","1/8"],a:1},
+  {l:20,t:"Ago magnetico in campo magnetico (da L069): è sottoposto a:",o:["coppia di forze","forza sul polo nord","forza e coppia simultaneamente","forza sul polo sud"],a:0},
+  {l:20,t:"Una particella carica in un campo magnetico uniforme (se era in moto):",o:["non subisce forze","si mette in movimento per effetto del campo","se era ferma inizia a ruotare","subisce una forza se è in movimento"],a:3},
+  {l:20,t:"Due cariche q₁ e q₂=4q₁ con velocità v₁ e v₂=2v₁ nello stesso campo B⊥v. Rapporto r₁/r₂ dei raggi:",o:["2","1/2","4","1/8"],a:1},
+
+  // ── LEZIONE 070 aggiuntive ──
+  {l:21,t:"Spira quadrata L=20 cm, corrente 2 mA, campo B=0.5 T ortogonale alla superficie. Momento della forza:",o:["6·10⁻⁵ N·m","0 N·m","2·10⁻⁴ N·m","4·10⁻⁴ N·m"],a:1},
+  {l:21,t:"Spira quadrata L=20 cm, campo B=4 T ortogonale alla superficie, corrente 2 A. Momento della forza:",o:["0.32 N·m","0 N·m","160 N·m","16 N·m"],a:1},
+  {l:21,t:"Spira quadrata L=20 cm, corrente 2 mA, campo B=0.5 T ortogonale. Momento della forza: (terza versione)",o:["4·10⁻⁴ N·m","6·10⁻⁵ N·m","0 N·m","2·10⁻⁴ N·m"],a:2},
+
+  // ── LEZIONE 067 aggiuntive ──
+  {l:18,t:"Pila ε=12 V connessa in serie con R=1.4 MΩ e C=1.8 μF. Dopo quanto tempo la carica accumulata sarà pari a 16 μC?",o:["6.2 s","13 ms","3.4 s","2.1 s"],a:2},
+
+  // ── LEZIONE 069 aggiuntive ──
+  {l:20,t:"In quale situazione un campo magnetico uniforme esercita forza su una carica? (variante L069-Q13)",o:["la carica si muove parallelamente al campo","la carica è ferma","nessuna delle precedenti","la carica si muove ortogonalmente al campo"],a:3},
+
+  // ── LEZIONE 071 aggiuntive ──
+  {l:22,t:"Carica puntiforme positiva viaggia parallelamente a filo infinito a distanza d con corrente concorde alla velocità. La carica:",o:["viene deflessa verso il filo","rimane in moto rettilineo uniforme","viene deflessa ortogonalmente al piano","viene deflessa lontano dal filo"],a:0},
+
+  // ── LEZIONE 072 aggiuntive ──
+  {l:23,t:"Il campo magnetico generato dalla corrente in un filo rettilineo indefinito è diretto:",o:["su un piano parallelo al filo","su superficie sferica concatenata col filo","su un piano ortogonale al filo","parallelamente al filo"],a:2},
+  {l:23,t:"Una carica q/m=1.27·10⁶ C/kg si muove in moto circolare a v=400 m/s in solenoide con I=0.25 A, raggio 10 cm. Numero di spire per unità di lunghezza:",o:["~100 spire/cm","~1000 spire/cm","~20000 spire/cm","~10000 spire/cm"],a:0},
+
+
+  {l:2,t:"Tre cariche puntiformi da 0.012 mC sono distribuite lungo una retta, ciascuna distante 50 cm dalla successiva. Qual è il modulo della forza risultante sulla carica centrale?",o:["Circa 2×10⁶ V/m","3.9×10⁻³ N","0 N","7.8×10⁻³ N"],a:1},
+  // ── LEZIONE 052 aggiuntiva ──
+  {l:3,t:"Un elettrone lungo l'asse di un disco di raggio R carico con densità σ=2·10⁻⁶ C/m², posto a x=0.05 m. La componente assiale del campo è circa:",o:["2.0×10⁴ N/C","2.61×10⁵ N/C","8.0×10⁴ N/C","6.5×10³ N/C"],a:1},
+  // ── LEZIONE 054 aggiuntiva ──
+  {l:5,t:"La velocità di fuga di un elettrone sulla superficie di una sfera di raggio 1 cm carica con Q=10⁻¹⁵ C:",o:["v≈7.1·10³ m/s","v≈2.2·10⁴ m/s","v≈5.0·10³ m/s","v≈1.0·10⁴ m/s"],a:0},
+  // ── LEZIONE 059 duplicata rilevante ──
+  {l:10,t:"La rigidità dielettrica di un mezzo è: (seconda versione)",o:["il rapporto C/C₀","il campo massimo sostenibile prima della scarica elettrica","la densità di carica massima accumulabile nel dielettrico","la massima carica sulle armature di un condensatore con quel mezzo"],a:1},
+  // ── LEZIONE 063 mancanti ──
+  {l:14,t:"Si vuole far circolare in una resistenza R₀=400 Ω una corrente di 10 mA collegandola a una pila da 9 V. Quante resistenze R₀ uguali in serie sono necessarie affinché la corrente non superi i 50 mA?",o:["1","2","3","5"],a:1},
+  {l:14,t:"Tre resistori uguali collegati in serie percorsi da corrente. Quello posto al centro dissipa:",o:["meno potenza degli altri","più potenza degli altri","la stessa potenza degli altri","bisogna conoscere il valore delle resistenze"],a:2},
+  // ── LEZIONE 064 mancanti ──
+  {l:15,t:"Una centrale elettrica sviluppa una potenza di 5 MW. Che cosa significa?",o:["Può compiere un lavoro di 5 MJ","In un secondo trasferisce 5 MJ di energia","In un'ora compie un lavoro di 5 MJ","La tensione ai capi è di 5 MV"],a:1},
+  {l:15,t:"Su un trapano elettrico c'è scritto 500 W. Che cosa significa?",o:["Riceve 500 J di energia al secondo","Produce 500 N di forza","Ha una resistenza di 500 Ω","Funziona a 500 V"],a:0},
+  {l:15,t:"La potenza disponibile in un circuito domestico è 3 kW, la tensione 220 V. Corrente massima disponibile:",o:["Nel circuito può scorrere al massimo ~13.6 A","La corrente è fissa a 3 A","La corrente massima è 220/3000 A","La corrente dipende solo dalla resistenza del carico"],a:0},
+  {l:15,t:"Un dispositivo elettrico produce calore con una potenza di 2.5 W per 10 minuti. Calore prodotto:",o:["25 J","250 J","1500 J","150 J"],a:2},
+  {l:15,t:"Una resistenza da 10 Ω è collegata a una pila da 9 V. La potenza dissipata è:",o:["8.1 W","81 W","0.9 W","90 W"],a:0},
+  {l:15,t:"Quale tensione massima posso applicare a una resistenza da 10 Ω con potenza massima di 10 W?",o:["3.3 V","10 V","100 V","√10 V ≈ 3.16 V (≈ 10 V)"],a:3},
+  {l:15,t:"Una serpentina di 30 Ω in 40 l d'acqua a 15°C, da portare a 45°C in 30 min (c=4186 J/kgK). Corrente necessaria:",o:["~9.7 A","~3.1 A","~19.4 A","~6.5 A"],a:0},
+  {l:15,t:"In un resistore con corrente i si produce calore Q. Se la corrente raddoppia (a parità di tempo e R):",o:["Q raddoppia","Q quadruplica","Q dimezza","Q non cambia"],a:1},
+  {l:15,t:"Quanta energia (calore) produce un dispositivo da 2.5 W in 10 minuti?",o:["25 J","1500 J","250 J","150 J"],a:1},
+  // ── LEZIONE 069 mancanti ──
+  {l:20,t:"Due cariche q₁ e q₂=4q₁ con velocità v₁ e v₂=2v₁ entrano nello stesso campo B perpendicolare. Il rapporto dei raggi r₁/r₂ è:",o:["1/2","2","1/4","1"],a:0},
+  {l:20,t:"Una particella carica in moto in un campo magnetico uniforme (caso generale):",o:["Percorre sempre una traiettoria circolare","Percorre una traiettoria elicoidale se v non è ⊥ a B","Subisce sempre una decelerazione","Aumenta sempre la propria energia cinetica"],a:1},
+  {l:20,t:"Cosa succede se si posiziona una carica elettrica ferma in un campo elettrico? E in un campo magnetico?",o:["In E subisce forza, in B non subisce forza","In E non subisce forza, in B subisce forza","In entrambi subisce forza","In nessuno dei due subisce forza"],a:0},
+  {l:20,t:"Due cariche q₁ e q₂=4q₁ hanno velocità v₁ e v₂=2v₁, stessa direzione perpendicolare a B uniforme. Il rapporto r₂/r₁ dei raggi è:",o:["2","4","1/2","1"],a:0},
+  {l:20,t:"Un ago magnetico in campo magnetico è sottoposto a: (da lezione 069)",o:["solo una forza sul polo nord","una coppia di forze che tende ad allinearlo con il campo","una forza e una coppia simultaneamente","solo una forza sul polo sud"],a:1},
+  // ── LEZIONE 072 aggiuntiva ──
+  {l:23,t:"La legge di Ampère afferma che la circuitazione del campo magnetico su un percorso chiuso:",o:["è sempre nulla","è uguale a μ₀ per la somma algebrica delle correnti concatenate al percorso","è uguale al flusso del campo attraverso la superficie delimitata dal percorso","è proporzionale alla distanza dal filo percorso da corrente"],a:1},
+];
+
+const OPEN_QUESTIONS = [
+  {l:1,t:"Si enunci e discuta la legge di Coulomb.",a:"La legge di Coulomb afferma che la forza tra due cariche puntiformi q₁ e q₂ a distanza r nel vuoto è F=(1/4πε₀)·q₁q₂/r². È repulsiva per cariche dello stesso segno, attrattiva per segni opposti. La forza è proporzionale al prodotto delle cariche e inversamente proporzionale a r². Per il III principio di Newton le forze su q₁ e q₂ sono uguali in modulo e opposte in verso."},
+  {l:2,t:"Definire il campo elettrico.",a:"Il campo elettrico E in un punto è il limite del rapporto tra la forza F su una carica di prova q e il valore di q, per q→0: E=lim(q→0)F/q. È un vettore [N/C=V/m], indipendente dalla carica di prova. Il campo è una proprietà intrinseca dello spazio attorno alle cariche sorgente."},
+  {l:2,t:"Come viene definito il campo elettrico? Si discuta il campo generato da una carica puntiforme.",a:"E=F/q (con q→0 per non perturbare il campo). Per una carica puntiforme Q: E=(1/4πε₀)Q/r², radiale verso l'esterno se Q>0. Per più cariche vale il principio di sovrapposizione: E_tot=ΣEᵢ. Le linee di campo escono da cariche positive ed entrano in quelle negative."},
+  {l:2,t:"Si definiscano il dipolo elettrico e il momento di dipolo; si discuta il campo generato.",a:"Il dipolo è un sistema di due cariche +q e −q separate da distanza d. Il momento di dipolo è p=qd (vettore dalla carica − alla +). Il campo sull'asse ortogonale a grande distanza x è E≈−(1/4πε₀)p/x³, antiparallelo a p, decadente come 1/x³ (più rapidamente di una carica singola perché i campi delle due cariche tendono a cancellarsi)."},
+  {l:3,t:"Si discuta l'interazione tra una carica elettrica e un campo elettrico.",a:"Una carica q in campo E subisce F=qE. In campo uniforme con v∥E: moto rettilineo accelerato con a=qE/m. Con v⊥E: moto parabolico x=v₀t, y=½at² (analogo al moto in gravità). La direzione della forza coincide con E se q>0, è opposta se q<0."},
+  {l:3,t:"Si discuta l'interazione di un dipolo elettrico con un campo elettrico uniforme in cui sia immerso.",a:"Un dipolo p in campo uniforme E: forza risultante nulla (le due forze su +q e −q si cancellano), ma momento torcente M=p×E (modulo M=pE sinθ). Il momento tende ad allineare p con E (equilibrio stabile per θ=0). Applicazione: orientamento molecole polari, principio del forno a microonde."},
+  {l:4,t:"Si enunci il teorema di Gauss, fornendo un esempio esplicativo.",a:"Il teorema di Gauss afferma che il flusso del campo elettrostatico E nel vuoto attraverso una superficie chiusa S qualunque è Φ=Q_int/ε₀, dove Q_int è la carica totale interna a S. Le cariche esterne non contribuiscono. Esempio: per una sfera carica Q, scegliendo superficie gaussiana sferica di raggio r>R: E·4πr²=Q/ε₀ → E=Q/(4πε₀r²), come per una carica puntiforme."},
+  {l:5,t:"Dopo aver introdotto la differenza di potenziale, si descriva il potenziale elettrostatico di una carica puntiforme.",a:"La differenza di potenziale V_A−V_B=∫_A^B E·ds=L_AB/q. Con V=0 all'infinito, il potenziale di una carica puntiforme Q a distanza r è V(r)=(1/4πε₀)Q/r. È una funzione scalare (sovrapposizione algebrica per più cariche). Positivo per Q>0, negativo per Q<0. L'equipotenziale è una sfera concentrica alla carica."},
+  {l:5,t:"Si discuta la conservazione dell'energia di una carica in moto in un campo elettrico.",a:"Una carica q di massa m in moto sotto la sola azione del campo conserva E_tot=½mv²+qV=costante (campo conservativo). Da A a B: ΔEK=−qΔV=q(V_A−V_B). La variazione di energia cinetica è uguale al lavoro della forza elettrica. Applicazione: accelerazione di particelle cariche da una differenza di potenziale ΔV."},
+  {l:6,t:"Si discuta la determinazione del campo elettrostatico in un punto in cui sia noto il potenziale.",a:"Il campo si ottiene come opposto del gradiente del potenziale: E=−∇V, ossia Eₓ=−∂V/∂x, Eᵧ=−∂V/∂y, E_z=−∂V/∂z. Il campo è sempre perpendicolare alle superfici equipotenziali, diretto nel verso di massima diminuzione di V. Conseguenza: in una regione con V=costante (conduttore) il campo è nullo."},
+  {l:7,t:"Come varia il potenziale in un conduttore in condizioni elettrostatiche?",a:"In condizioni elettrostatiche il campo all'interno del conduttore è nullo. Quindi la circuitazione di E lungo qualsiasi percorso interno è nulla, il che implica potenziale costante in tutto il conduttore. La superficie è una superficie equipotenziale. Conseguenza: il campo esterno in prossimità della superficie è perpendicolare ad essa."},
+  {l:7,t:"Si enunci e dimostri il teorema di Coulomb per il campo in prossimità della superficie di un conduttore.",a:"Il teorema di Coulomb afferma che il campo in prossimità della superficie di un conduttore è E_ext=σ/ε₀, perpendicolare alla superficie. Dimostrazione: si applica Gauss a un cilindretto con una base esterna e una interna al conduttore. Il campo interno è nullo → contribuisce solo la base esterna: E·ΔS=σ·ΔS/ε₀ → E=σ/ε₀."},
+  {l:8,t:"Si definiscano il condensatore e la sua capacità; si discuta il caso del condensatore piano.",a:"Il condensatore è un sistema di due conduttori (armature) in induzione completa. Capacità C=Q/ΔV [F=C/V], dipende solo dalla geometria. Per il condensatore piano con armature di area S e distanza d: campo uniforme E=σ/ε₀=Q/(ε₀S), d.d.p. ΔV=Ed=Qd/(ε₀S), quindi C=ε₀S/d. Aumentare S o diminuire d aumenta la capacità."},
+  {l:8,t:"Si discuta la capacità equivalente di più condensatori in serie e in parallelo.",a:"Parallelo (stessa ΔV, cariche si sommano): C_eq=C₁+C₂+…+Cₙ (la capacità aumenta). Serie (stessa Q, tensioni si sommano): 1/C_eq=1/C₁+1/C₂+…+1/Cₙ (la capacità diminuisce). In parallelo C_eq > C_max; in serie C_eq < C_min."},
+  {l:9,t:"Si discuta la densità di energia elettrostatica partendo dal condensatore piano.",a:"Per il condensatore piano: U=½CΔV²=½(ε₀S/d)(Ed)²=½ε₀E²·(Sd). Il volume tra le armature è Sd, quindi la densità di energia è u=U/V=½ε₀E². Questo risultato è generale: in qualsiasi regione con campo E attivo, l'energia per unità di volume è u=½ε₀E² (nel vuoto) oppure u=½εE² (in dielettrico). L'energia totale è U=∫½ε₀E²dV."},
+  {l:10,t:"Si discuta l'effetto dell'inserimento di un dielettrico all'interno di un condensatore carico.",a:"A carica Q fissa: C aumenta (C=εᵣC₀), E diminuisce (E=E₀/εᵣ), ΔV diminuisce (ΔV=ΔV₀/εᵣ), U diminuisce (U=U₀/εᵣ). Il dielettrico si polarizza: cariche di polarizzazione si oppongono al campo esterno riducendolo. A ΔV fissa (batteria collegata): Q aumenta, E costante, C aumenta, U aumenta."},
+  {l:13,t:"Definire la corrente elettrica.",a:"La corrente elettrica è il flusso ordinato di cariche in un conduttore. L'intensità di corrente i=dQ/dt [A=C/s]. È causata da un campo elettrico che imprime agli elettroni una velocità di deriva sistematica sovrapposta al moto termico caotico. L'Ampere è unità fondamentale del SI; la carica è grandezza derivata: [Q]=[I·T]."},
+  {l:13,t:"Si definisca il vettore densità di corrente e si discuta l'equazione di continuità.",a:"Il vettore densità di corrente j=nqv_d [A/m²] (n=densità portatori, q=carica, v_d=velocità di deriva). La corrente è il flusso di j: i=∫j·dS. L'equazione di continuità ∂ρ/∂t+div j=0 esprime la conservazione della carica. In regime stazionario: div j=0 (j è solenoidale, la corrente è la stessa in ogni sezione del conduttore)."},
+  {l:14,t:"Si enunci la legge di Ohm e si definisca la resistenza elettrica di un conduttore.",a:"La legge di Ohm (macroscopica): V=Ri, dove R=ρL/S è la resistenza [Ω=V/A], ρ la resistività del materiale, L la lunghezza, S la sezione. Forma microscopica: j=σE con σ=1/ρ conduttività. La resistenza dipende dalla geometria e dalla temperatura. Resistori in serie: R_eq=ΣRᵢ. In parallelo: 1/R_eq=Σ(1/Rᵢ)."},
+  {l:15,t:"Cos'è l'effetto Joule?",a:"L'effetto Joule è la conversione di energia elettrica in calore che avviene in ogni conduttore percorso da corrente. Il calore prodotto nell'intervallo di tempo t è Q=Ri²t=Pt. In forma locale, la potenza dissipata per unità di volume è p=j·E=σE²=j²/σ. L'effetto è irreversibile. Applicazioni: stufe elettriche, lampadine a incandescenza, fusibili."},
+  {l:15,t:"Definire la potenza elettrica.",a:"La potenza elettrica P è l'energia trasferita per unità di tempo: P=dW/dt=V·i [W=J/s=V·A]. Per un resistore ohmico (V=Ri): P=Vi=Ri²=V²/R. La potenza è positiva se l'elemento assorbe energia (resistore), negativa se la fornisce (generatore). Energia dissipata in tempo t: W=Pt."},
+  {l:16,t:"Si definisca la forza elettromotrice di un generatore e si descriva il circuito equivalente di un generatore reale.",a:"La f.e.m. ε è il lavoro compiuto dal campo elettromotore (non elettrostatico) per unità di carica: ε=∮E_em·ds. Circuito equivalente del generatore reale: generatore ideale ε in serie con resistenza interna r. Tensione ai morsetti: V=ε−ri (in erogazione). A vuoto (i=0): V=ε. In cortocircuito (V=0): i_cc=ε/r."},
+  {l:17,t:"Si enuncino le leggi di Kirchhoff per i circuiti elettrici lineari.",a:"Prima legge (nodi): la somma algebrica delle correnti in ogni nodo è nulla Σiᵢ=0 (correnti entranti = uscenti). Deriva dalla conservazione della carica (div j=0 in regime stazionario). Seconda legge (maglie): percorrendo una maglia, la somma algebrica delle f.e.m. uguaglia la somma delle cadute ohmiche: Σεₖ=ΣRⱼiⱼ. Deriva dalla conservatività del campo elettrostatico (circuitazione nulla)."},
+  {l:18,t:"Si descriva il processo di carica in un circuito RC.",a:"Con condensatore inizialmente scarico e generatore ε, alla chiusura del circuito: q(t)=Cε(1−e^(−t/τ)), i(t)=(ε/R)e^(−t/τ), V_C(t)=ε(1−e^(−t/τ)), con costante di tempo τ=RC. All'inizio i=ε/R (come se non ci fosse il condensatore); a regime i=0 e V_C=ε. Dopo 5τ il condensatore è praticamente carico al 99%."},
+  {l:18,t:"Si discuta il bilancio energetico della scarica di un circuito RC.",a:"Un condensatore carico con carica q₀ che si scarica su una resistenza R: q(t)=q₀e^(−t/τ), V_C(t)=V₀e^(−t/τ). Tutta l'energia iniziale U₀=½CV₀² viene dissipata su R per effetto Joule: ∫₀^∞ Ri²dt=½CV₀²=U₀. In fase di carica: metà dell'energia fornita dal generatore (½Cε²) va nel condensatore, l'altra metà è dissipata su R, indipendentemente da R."},
+  {l:19,t:"Si descriva la forza di Lorentz e si discuta qualche esempio applicativo.",a:"La forza di Lorentz magnetica su carica q con velocità v in campo B è F=qv×B, con modulo F=qvB sinθ. La forza è perpendicolare sia a v che a B: non compie lavoro e non cambia il modulo della velocità. In campo uniforme con v⊥B: moto circolare con r=mv/(qB), f_c=qB/(2πm). Applicazioni: spettrometro di massa (isotopi separati per raggio diverso), ciclotrone, selettore di velocità (v=E/B)."},
+  {l:20,t:"Cosa succede a una carica elettrica in movimento in un campo magnetico?",a:"La forza di Lorentz F=qv×B è sempre ⊥ a v, quindi non compie lavoro e non cambia il modulo della velocità. Se v⊥B: moto circolare uniforme con raggio r=mv/(qB) e frequenza ciclotrónica f_c=qB/(2πm) (indipendente dalla velocità). Se v ha componente parallela a B: moto elicoidale. Se v∥B: nessuna forza magnetica."},
+  {l:20,t:"Si discuta il principio di funzionamento di uno spettrometro di massa.",a:"Ioni accelerati da differenza di potenziale ΔV acquistano velocità v=√(2qΔV/m). Entrano poi in un campo B perpendicolare alla velocità e percorrono una traiettoria circolare con raggio r=mv/(qB). Dalla misura di r si ricava m/q=r²B²/(2ΔV). Ioni con stessa q ma massa diversa (isotopi) percorrono raggi diversi e vengono separati, permettendo la misurazione precisa delle masse."},
+  {l:21,t:"Si definisca il momento magnetico di una spira piana e si discuta l'azione di un campo magnetico su di essa.",a:"Il momento magnetico di una spira è m=i·A·n̂ [A·m²], dove A è l'area e n̂ il versore normale (regola della mano destra rispetto al verso della corrente). Un campo magnetico B esercita sulla spira un momento torcente M=m×B=iAB sinθ. Equilibrio stabile: m∥B. È il principio di funzionamento di galvanometro e motore elettrico."},
+  {l:22,t:"Si enunci e descriva la legge di Biot-Savart.",a:"La legge di Biot-Savart afferma che ogni tratto di filo ds percorso da corrente i genera in un punto P a distanza r il campo dB=(μ₀/4π)·i·ds×r̂/r², con μ₀=4π×10⁻⁷ T·m/A. Il campo totale si ottiene integrando su tutto il circuito. Per un filo rettilineo infinito: B=μ₀i/(2πr). Le linee di campo sono circonferenze concentriche con il filo."},
+  {l:23,t:"Si descriva il campo magnetico all'interno di un solenoide rettilineo percorso da corrente.",a:"Il solenoide è un avvolgimento elicoidale con n spire per unità di lunghezza. Applicando il teorema di Ampere a un rettangolo con un lato interno di lunghezza L: ∮B·dl=B·L=μ₀·(nL)·i → B=μ₀ni. Il campo è uniforme, parallelo all'asse, proporzionale a n e a i. All'esterno il campo è nullo (solenoide ideale). Il solenoide è usato per generare campi magnetici uniformi."},
+  {l:23,t:"Si enunci e si descriva il teorema di Ampere.",a:"Il teorema di Ampere afferma che la circuitazione del campo magnetico B lungo una qualsiasi linea chiusa l è uguale a μ₀ moltiplicato per la somma algebrica delle correnti concatenate con l: ∮B·dl=μ₀Σi_conc. In forma locale: rotB=∇×B=μ₀j (terza equazione di Maxwell in forma stazionaria). Applicazioni: campo del filo rettilineo (B=μ₀i/(2πr)), del solenoide (B=μ₀ni), del toroide (B=μ₀ni/(2πr))."},
+  // ── Aperte aggiuntive dal paniere ──
+  {l:14,t:"Si definisca la resistenza elettrica di un conduttore e si discutano le resistenze equivalenti di un sistema di resistori.",a:"La resistenza R=ρL/S [Ω] dipende dalla resistività del materiale ρ, dalla lunghezza L e dalla sezione S. In serie: R_eq=R₁+R₂+… (stessa corrente, d.d.p. si sommano, R_eq > R_max). In parallelo: 1/R_eq=1/R₁+1/R₂+… (stessa d.d.p., correnti si sommano, R_eq < R_min)."},
+  {l:14,t:"Esporre la prima legge di Ohm.",a:"La prima legge di Ohm: V=Ri, dove R è la resistenza [Ω=V/A]. La d.d.p. ai capi è proporzionale alla corrente. Vale per conduttori ohmici a temperatura costante. La resistenza dipende solo dalla geometria e dal materiale, non dalla corrente."},
+  {l:15,t:"In cosa consiste l'effetto Joule e che forma assume considerandolo localmente?",a:"L'effetto Joule è la conversione irreversibile di energia elettrica in calore, causata dagli urti degli elettroni con il reticolo cristallino. Potenza totale: P=Ri²=V²/R=Vi. In forma locale, densità di potenza: p=j·E=σE²=j²/σ [W/m³]. È la forma locale della legge di Joule."},
+  {l:20,t:"Si descriva il moto di una carica che entra con velocità in direzione generica in un campo magnetico uniforme.",a:"Si decompone v in v∥=v cosθ (parallela a B, non deviata) e v⊥=v sinθ (perpendicolare a B, produce moto circolare con r=mv⊥/(qB)). La combinazione dà moto elicoidale: circonferenza nel piano ⊥B + traslazione uniforme lungo B. Il passo dell'elica è p=v∥·T=2πm·v cosθ/(qB)."},
+];
+
+// ══ SCORE CRITERIA ══
+const SCORE_CRITERIA = [
+  {v:0, label:"0 pt", color:"#c0392b", desc:"Risposta mancante, errata o senza elaborazione personale"},
+  {v:1, label:"1 pt", color:"#e67e22", desc:"Alcuni elementi corretti, ma prevalenza di errori o incompletezza"},
+  {v:2, label:"2 pt", color:"#f1c40f", desc:"Risposta corretta ma con imprecisioni o esposizione non efficace"},
+  {v:3, label:"3 pt", color:"#27ae60", desc:"Risposta corretta, articolata, con linguaggio disciplinare appropriato"},
+];
+
+// ══ STATE ══
+let examMC = [], examOpen = [];
+let userAnswersMC = {}, userAnswersOpen = {};
+let openScores = {};
+let startTime = null, timerInterval = null, elapsedSeconds = 0;
+
+function shuffle(arr) {
+  const a=[...arr]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a;
+}
+
+function startExam() {
+  // Pick 24 MC with shuffled options
+  examMC = shuffle(MC_QUESTIONS).slice(0,24).map(q => {
+    const idx = shuffle([0,1,2,3]);
+    return {...q, so: idx.map(i=>q.o[i]), sc: idx.indexOf(q.a)};
+  });
+  examOpen = shuffle(OPEN_QUESTIONS).slice(0,2);
+  userAnswersMC = {}; userAnswersOpen = {}; openScores = {};
+  elapsedSeconds = 0;
+  renderExam();
+  showScreen('exam');
+  startTime = Date.now();
+  timerInterval = setInterval(tickTimer, 1000);
+}
+
+function tickTimer() {
+  elapsedSeconds = Math.floor((Date.now()-startTime)/1000);
+  const rem = Math.max(0, 3600-elapsedSeconds);
+  const m=Math.floor(rem/60), s=rem%60;
+  const el=document.getElementById('timer-display');
+  el.textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  el.classList.toggle('urgent', rem<300);
+}
+
+function fmtTime(s){const m=Math.floor(s/60);return `${m}'${String(s%60).padStart(2,'0')}"`;} 
+
+function renderExam() {
+  const body = document.getElementById('exam-body');
+  let h = '';
+  h += `<div class="q-section-label">Domande a Risposta Chiusa &mdash; 24 domande × 1 punto</div>`;
+  examMC.forEach((q,i) => {
+    h += `<div class="question-block" id="qb-${i}">
+      <div class="question-top"><span class="qn-badge">Q${String(i+1).padStart(2,'0')}</span><span class="q-text-exam">${q.t}</span></div>
+      <div class="options-exam">`;
+    q.so.forEach((opt,oi) => {
+      h += `<div class="opt-exam" id="opt-${i}-${oi}" onclick="pickMC(${i},${oi})">
+        <div class="opt-dot"><div class="opt-dot-inner"></div></div>
+        <span class="opt-text-exam">${opt}</span></div>`;
+    });
+    h += `</div></div>`;
+  });
+  h += `<div class="q-section-label" style="margin-top:32px;">Domande Aperte &mdash; 2 domande × max 3 punti</div>`;
+  examOpen.forEach((q,i) => {
+    h += `<div class="question-block" id="qb-open-${i}">
+      <div class="question-top"><span class="qn-badge open-badge">APERTA ${i+1}</span><span class="q-text-exam">${q.t}</span></div>
+      <div class="open-wrap">
+        <textarea class="open-textarea" id="ota-${i}" placeholder="Scrivi qui la tua risposta con parole tue. La valutazione tiene conto della correttezza, completezza e uso del linguaggio disciplinare…" oninput="saveOpen(${i})"></textarea>
+        <div class="open-hint">💡 Non copiare frasi dal libro. La professoressa valuta la rielaborazione personale e il linguaggio disciplinare corretto.</div>
+      </div></div>`;
+  });
+  body.innerHTML = h;
+  updateFooter();
+}
+
+function pickMC(qi, oi) {
+  examMC[qi].so.forEach((_,j) => document.getElementById(`opt-${qi}-${j}`)?.classList.remove('selected'));
+  document.getElementById(`opt-${qi}-${oi}`)?.classList.add('selected');
+  document.getElementById(`qb-${qi}`)?.classList.add('answered');
+  userAnswersMC[qi] = oi;
+  updateFooter();
+}
+
+function saveOpen(i) {
+  const v = document.getElementById(`ota-${i}`)?.value.trim() || '';
+  userAnswersOpen[i] = v;
+  document.getElementById(`qb-open-${i}`)?.classList.toggle('answered', v.length>0);
+  updateFooter();
+}
+
+function updateFooter() {
+  const mc = Object.keys(userAnswersMC).length;
+  const op = Object.keys(userAnswersOpen).filter(k=>userAnswersOpen[k].length>0).length;
+  const tot = mc + op;
+  document.getElementById('answered-count').textContent = tot;
+  document.getElementById('hdr-label').textContent = `Risposte date: ${tot} / 26`;
+  document.getElementById('progress-fill').style.width = (tot/26*100)+'%';
+  const correct = Object.values(userAnswersMC).filter((v,i)=>v===examMC[i]?.sc).length;
+  document.getElementById('hdr-pts').textContent = `Pt. corrette: ${correct}/24`;
+  document.getElementById('submit-btn').disabled = (tot === 0);
+}
+
+function submitExam() {
+  clearInterval(timerInterval);
+  buildResults();
+  showScreen('results');
+  window.scrollTo(0,0);
+}
+
+// ══ SELF-SCORE TRACKING ══
+function setOpenScore(idx, score) {
+  openScores[idx] = score;
+  // Update button styles
+  SCORE_CRITERIA.forEach(c => {
+    const el = document.getElementById(`sc-${idx}-${c.v}`);
+    if(el) el.className = 'score-opt' + (c.v === score ? ` selected-${c.v}` : '');
+  });
+  recalcFinalScore();
+}
+
+function recalcFinalScore() {
+  const mcPts = Object.values(userAnswersMC).filter((v,i)=>v===examMC[i]?.sc).length;
+  const openPts = (openScores[0]||0) + (openScores[1]||0);
+  const total = mcPts + openPts;
+
+  document.getElementById('fsb-score').textContent = `${total}/30`;
+  document.getElementById('fsb-mc-detail').textContent = `${mcPts}/24 (chiuse)`;
+  document.getElementById('fsb-op-detail').textContent = `${openPts}/6 (aperte)`;
+
+  let verdict, vClass;
+  if(total < 18)       { verdict = 'Insufficiente'; vClass = 'fail'; }
+  else if(total < 21)  { verdict = '18 — Sufficiente'; vClass = 'pass'; }
+  else if(total < 24)  { verdict = '21 — Discreto'; vClass = 'pass'; }
+  else if(total < 27)  { verdict = '24 — Buono'; vClass = 'pass'; }
+  else if(total < 28)  { verdict = '27 — Molto Buono'; vClass = 'pass'; }
+  else if(total < 30)  { verdict = '28–29 — Ottimo'; vClass = 'pass'; }
+  else                 { verdict = '30 — Eccellente 🏆'; vClass = 'honors'; }
+
+  const vEl = document.getElementById('fsb-verdict');
+  vEl.textContent = verdict; vEl.className = `fsb-verdict ${vClass}`;
+
+  // Update open total line
+  const otEl = document.getElementById('open-score-total-val');
+  if(otEl) otEl.textContent = openPts;
+}
+
+function buildResults() {
+  const mcPts = Object.values(userAnswersMC).filter((v,i)=>v===examMC[i]?.sc).length;
+  const wrong = Object.keys(userAnswersMC).length - mcPts;
+
+  document.getElementById('rb-correct').textContent = mcPts;
+  document.getElementById('rb-wrong').textContent = wrong;
+  document.getElementById('rb-mc-pts').textContent = `${mcPts}/24`;
+  document.getElementById('rb-time').textContent = fmtTime(elapsedSeconds);
+
+  // Provisional grade (open not yet scored)
+  document.getElementById('res-grade').textContent = `${mcPts}`;
+  document.getElementById('res-grade').className = `results-grade ${mcPts>=18?'pass':(mcPts>=15?'pass':'fail')}`;
+  document.getElementById('res-verdict').textContent = `Domande chiuse: ${mcPts} pt su 24 · Valuta le domande aperte per il voto finale`;
+
+  let html = '';
+
+  // ── MC REVIEW ──
+  html += `<div class="review-section-title">Revisione Domande Chiuse</div>`;
+  examMC.forEach((q,i) => {
+    const ans = userAnswersMC[i];
+    const ok = ans === q.sc;
+    const skipped = ans === undefined;
+    const cardCls = skipped ? 'skip-card' : (ok ? 'correct-card' : 'wrong-card');
+    const badgeCls = skipped ? 'sk' : (ok ? 'ok' : 'ko');
+    const badgeTxt = skipped ? 'SALTATA' : (ok ? '✓ +1 pt' : '✗ 0 pt');
+
+    html += `<div class="review-card ${cardCls}">
+      <div class="review-top">
+        <span class="r-badge ${badgeCls}">${badgeTxt}</span>
+        <span class="review-q-text"><strong>Q${i+1}.</strong> ${q.t}</span>
+      </div>
+      <div class="review-opts">`;
+
+    q.so.forEach((opt,oi) => {
+      if(oi === q.sc) {
+        html += `<div class="r-opt r-correct"><span class="tag">✓</span>${opt}</div>`;
+      } else if(oi === ans && !ok) {
+        html += `<div class="r-opt r-wrong"><span class="tag">✗</span>${opt}</div>`;
+      }
+    });
+
+    html += `</div></div>`;
+  });
+
+  // ── OPEN REVIEW + SELF SCORE ──
+  html += `<div class="review-section-title" style="margin-top:32px;">Domande Aperte — Autovalutazione (0–3 punti ciascuna)</div>`;
+  html += `<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-bottom:18px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim);line-height:1.8;">
+    <strong style="color:var(--text-muted);">Criteri ufficiali:</strong><br>
+    <span style="color:#c0392b;">0</span> = risposta mancante, errata o senza rielaborazione personale &nbsp;·&nbsp;
+    <span style="color:#e67e22;">1</span> = parziale &nbsp;·&nbsp;
+    <span style="color:#f1c40f;">2</span> = corretta con imprecisioni &nbsp;·&nbsp;
+    <span style="color:#27ae60;">3</span> = corretta, articolata, linguaggio appropriato
+  </div>`;
+
+  examOpen.forEach((q,i) => {
+    const userAns = userAnswersOpen[i] || '';
+    html += `<div class="review-card open-card">
+      <div class="review-top">
+        <span class="r-badge op">APERTA ${i+1}</span>
+        <span class="review-q-text">${q.t}</span>
+      </div>
+      <div class="open-review-wrap">
+        <div class="your-answer-box">
+          <strong>La tua risposta</strong>
+          ${userAns || '<em style="opacity:.45">Nessuna risposta fornita</em>'}
+        </div>
+        <div class="model-answer-box">
+          <strong>📖 Risposta tipo (riferimento)</strong>
+          ${q.a}
+        </div>
+        <div class="self-score-wrap">
+          <span class="self-score-label">📝 Autovaluta la tua risposta — quanto credi di meritare?</span>
+          <div class="score-options">`;
+
+    SCORE_CRITERIA.forEach(c => {
+      html += `<div class="score-opt" id="sc-${i}-${c.v}" onclick="setOpenScore(${i},${c.v})">
+        <span class="score-opt-num">${c.v}</span>
+        <span class="score-opt-desc">${c.desc}</span>
+      </div>`;
+    });
+
+    html += `</div></div></div></div>`;
+  });
+
+  // ── FINAL SCORE BANNER ──
+  html += `<div class="final-score-banner" id="final-banner">
+    <div>
+      <div class="fsb-label">Voto stimato finale</div>
+      <div class="fsb-score" id="fsb-score">—/30</div>
+    </div>
+    <div class="fsb-breakdown">
+      <div id="fsb-mc-detail">— /24 (chiuse)</div>
+      <div id="fsb-op-detail">— /6 (aperte)</div>
+      <div style="margin-top:4px;color:var(--text-dim);font-size:9px;">Seleziona il punteggio per le domande aperte</div>
+    </div>
+    <div class="fsb-verdict fail" id="fsb-verdict">—</div>
+  </div>
+
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim);line-height:1.7;text-align:center;">
+    ⚠️ Il voto finale dipende anche dalla valutazione della professoressa sulle domande aperte.<br>
+    Questo simulatore ti dà una stima basata sulla tua autovalutazione.
+  </div>`;
+
+  html += `<button class="retry-btn" onclick="resetExam()">↺ Nuovo Tentativo</button>`;
+
+  document.getElementById('results-body').innerHTML = html;
+  recalcFinalScore();
+}
+
+function resetExam() {
+  clearInterval(timerInterval);
+  examMC=[]; examOpen=[];
+  userAnswersMC={}; userAnswersOpen={}; openScores={};
+  elapsedSeconds=0;
+  document.getElementById('timer-display').textContent='60:00';
+  document.getElementById('timer-display').classList.remove('urgent');
+  showScreen('welcome');
+  window.scrollTo(0,0);
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+}
+</script>
+</body>
+</html>
