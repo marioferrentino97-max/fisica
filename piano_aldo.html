@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Piano Aldo">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Il Mio Piano 🥗</title>
+<style>
+:root {
+  --green: #2e8b57;
+  --green2: #3cb371;
+  --green-light: #e8f7ef;
+  --green-mid: #b2dfcc;
+  --orange: #e07030;
+  --orange-light: #fdf0e6;
+  --orange-mid: #f5c09a;
+  --yellow: #f5a623;
+  --yellow-light: #fef9e7;
+  --red: #e05050;
+  --blue: #2979b8;
+  --blue-light: #e8f1fb;
+  --purple: #7b5ea7;
+  --purple-light: #f0ebfa;
+  --teal: #1a8a80;
+  --teal-light: #e6f7f5;
+  --bg: #f5f7f0;
+  --card: #ffffff;
+  --border: #dde8d8;
+  --text: #2a3020;
+  --muted: #7a8870;
+  --radius: 16px;
+  --radius-sm: 10px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --green:#4caf80;--green2:#66bb8a;--green-light:#0d2218;--green-mid:#1a4030;
+    --orange:#e8884a;--orange-light:#2a1608;--orange-mid:#7a3810;
+    --yellow:#f5c040;--yellow-light:#2a2008;
+    --red:#e87070;--blue:#5090d0;--blue-light:#0a1828;
+    --purple:#a080d0;--purple-light:#1a1030;
+    --teal:#3ab8b0;--teal-light:#081e1c;
+    --bg:#141810;--card:#1e2418;--border:#2e382a;
+    --text:#e8ede0;--muted:#6a7862;
+  }
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{
+  height:100%;
+  /* Evita il bounce elastico su iOS a livello root */
+  overscroll-behavior:none;
+}
+html,body{height:100%;overflow:hidden;}
+body{
+  font-family:-apple-system,'SF Pro Text','Helvetica Neue',sans-serif;
+  background:var(--bg);color:var(--text);
+  display:flex;flex-direction:column;
+  /* Rendering testo ottimizzato per iOS */
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  /* Impedisce zoom automatico iOS su input */
+  text-size-adjust:100%;
+  -webkit-text-size-adjust:100%;
+  /* Niente highlight blu al tap */
+  -webkit-tap-highlight-color:transparent;
+  /* Niente callout menu tenendo premuto */
+  -webkit-touch-callout:none;
+  /* Disabilita selezione testo accidentale */
+  -webkit-user-select:none;
+  user-select:none;
+  /* Bounce elastico disabilitato */
+  overscroll-behavior:none;
+}
+
+/* Copre la status bar iOS (notch / Dynamic Island) con il colore dell'header */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0 0 auto;
+  height:env(safe-area-inset-top,0px);
+  background:var(--green);
+  z-index:1000;
+}
+
+/* HEADER */
+.hdr{
+  background:linear-gradient(135deg,var(--green) 0%,var(--green2) 100%);
+  padding:14px 16px 10px;
+  padding-top:calc(14px + env(safe-area-inset-top,0px));
+  flex-shrink:0;
+  position:relative;
+  overflow:hidden;
+}
+.hdr::before{
+  content:'🥗🍅🐟🥦🍎🫐';
+  position:absolute;top:-6px;right:-10px;
+  font-size:28px;opacity:0.18;letter-spacing:4px;
+  line-height:1.4;width:160px;word-break:break-all;
+}
+.hdr-inner{position:relative;z-index:1;}
+.hdr-top{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.hdr-avatar{
+  width:40px;height:40px;border-radius:50%;
+  background:rgba(255,255,255,0.25);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+}
+.hdr-title{color:#fff;}
+.hdr-title h1{font-size:17px;font-weight:700;line-height:1.2;}
+.hdr-title p{font-size:12px;opacity:0.85;}
+.hdr-month{
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(255,255,255,0.18);
+  border-radius:12px;padding:8px 12px;
+}
+.hdr-month-label{color:#fff;font-size:15px;font-weight:600;}
+.month-nav{display:flex;gap:6px;}
+.month-btn{
+  background:rgba(255,255,255,0.25);border:none;color:#fff;
+  /* Touch target minimo 44pt iOS HIG */
+  width:44px;height:44px;border-radius:50%;font-size:18px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-touch-callout:none;
+  transition:background 0.15s;
+}
+.month-btn:active{background:rgba(255,255,255,0.45);}
+
+/* WEEK STRIP */
+.week-strip{
+  background:var(--card);border-bottom:1.5px solid var(--border);
+  padding:10px 12px 8px;flex-shrink:0;
+  overflow-x:auto;scrollbar-width:none;
+  display:flex;gap:6px;
+  /* Scroll momentum iOS */
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-x:contain;
+}
+.week-strip::-webkit-scrollbar{display:none;}
+.wpill{
+  flex-shrink:0;display:flex;flex-direction:column;align-items:center;
+  padding:7px 10px;border-radius:999px;
+  border:1.5px solid var(--border);
+  background:var(--bg);color:var(--muted);
+  font-size:11px;font-weight:600;cursor:pointer;
+  /* Touch target minimo 44pt iOS HIG */
+  min-width:52px;min-height:52px;gap:1px;
+  -webkit-tap-highlight-color:transparent;
+  -webkit-touch-callout:none;
+  transition:all 0.15s;
+}
+.wpill .wday{font-size:11px;}
+.wpill .wdate{font-size:10px;font-weight:400;opacity:0.8;}
+.wpill .wbadge{font-size:14px;margin-top:1px;}
+.wpill.active{background:var(--green);color:#fff;border-color:var(--green);}
+.wpill.locked{background:var(--orange-light);color:var(--orange);border-color:var(--orange-mid);}
+.wpill.free{background:var(--yellow-light);color:var(--yellow);border-color:#f0d080;}
+.wpill.assigned{border-color:var(--green-mid);}
+.wpill.today-mark{box-shadow:0 0 0 2.5px var(--green2);}
+.wpill.active.locked{background:var(--orange);color:#fff;border-color:var(--orange);}
+.wpill.active.free{background:var(--yellow);color:#fff;border-color:var(--yellow);}
+
+/* MAIN SCROLL */
+.main{
+  flex:1;overflow-y:auto;
+  /* Scroll fluido con momentum su iOS */
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+}
+.main-inner{padding:14px 14px calc(72px + env(safe-area-inset-bottom,0px));max-width:580px;margin:0 auto;}
+
+/* SELECTOR CARD */
+.sel-card{
+  background:var(--card);border:1.5px solid var(--border);
+  border-radius:var(--radius);padding:14px;margin-bottom:14px;
+}
+.sel-card-label{font-size:13px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.sel-card select{
+  width:100%;
+  /* font-size 16px: critico su iOS — sotto 16px fa zoom automatico sul campo */
+  font-size:16px;
+  padding:11px 36px 11px 12px;
+  border-radius:var(--radius-sm);border:1.5px solid var(--border);
+  background:var(--bg);color:var(--text);
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237a8870' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;
+  /* iOS: rimuove ombra interna nativa sul select */
+  -webkit-appearance:none;
+  box-shadow:none;
+  outline:none;
+  /* Colore testo opzioni iOS */
+  -webkit-text-fill-color:var(--text);
+}
+.warn-box{
+  margin-top:8px;font-size:13px;color:var(--orange);
+  background:var(--orange-light);border-radius:var(--radius-sm);
+  padding:8px 10px;display:none;
+}
+
+/* KCAL BANNER */
+.kcal-banner{
+  display:flex;align-items:center;gap:10px;
+  background:var(--green-light);border:1.5px solid var(--green-mid);
+  border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;
+}
+.kcal-num{font-size:26px;font-weight:800;color:var(--green);line-height:1;}
+.kcal-sub{font-size:12px;color:var(--muted);}
+.kcal-emoji{font-size:28px;margin-left:auto;}
+
+/* MEAL BLOCK */
+.meal-block{margin-bottom:18px;}
+.meal-head{
+  display:flex;align-items:center;gap:8px;
+  margin-bottom:8px;padding:0 2px;
+}
+.meal-emoji{font-size:20px;}
+.meal-name{font-size:14px;font-weight:700;color:var(--text);}
+.meal-line{flex:1;height:1.5px;background:var(--border);}
+
+/* DISH CARD */
+.dish-card{
+  background:var(--card);border:1.5px solid var(--border);
+  border-radius:var(--radius);margin-bottom:8px;overflow:hidden;
+  transition:border-color 0.15s;
+}
+.dish-card.open{border-color:var(--green-mid);}
+.dish-hdr{
+  padding:12px 14px;display:flex;align-items:flex-start;gap:10px;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+  /* Touch target minimo iOS HIG: 44pt */
+  min-height:44px;
+}
+.dish-hdr:active{background:var(--bg);}
+/* Feedback visivo attivo su iOS (dove :hover non funziona) */
+@media(hover:none){
+  .dish-hdr:active{background:var(--green-light);transition:background 0s;}
+}
+.dish-icon{font-size:22px;flex-shrink:0;margin-top:1px;}
+.dish-info{flex:1;}
+.dish-name{font-size:15px;font-weight:600;color:var(--text);line-height:1.3;}
+.dish-g{font-size:12px;color:var(--muted);margin-top:2px;}
+.dish-chevron{
+  font-size:20px;color:var(--muted);flex-shrink:0;margin-top:2px;
+  transition:transform 0.2s;
+}
+.dish-card.open .dish-chevron{transform:rotate(180deg);}
+.dish-body{
+  display:none;padding:0 14px 12px 46px;
+  border-top:1.5px solid var(--green-light);
+}
+.dish-card.open .dish-body{display:block;}
+.alt-title{font-size:11px;font-weight:700;color:var(--green);letter-spacing:0.05em;margin:10px 0 6px;}
+.alt-item{
+  font-size:13px;color:var(--text);line-height:1.5;
+  padding:5px 0 5px 10px;border-left:2.5px solid var(--green-mid);
+  margin-bottom:4px;
+}
+
+/* FREE DAY */
+.free-day{
+  text-align:center;padding:40px 20px;
+  animation:popIn 0.3s ease;
+}
+@keyframes popIn{from{transform:scale(0.92);opacity:0;}to{transform:scale(1);opacity:1;}}
+.free-day .big{font-size:64px;margin-bottom:12px;}
+.free-day h2{font-size:22px;font-weight:800;color:var(--yellow);margin-bottom:8px;}
+.free-day p{font-size:15px;color:var(--muted);line-height:1.6;}
+
+/* LOCKED BANNER */
+.locked-banner{
+  display:flex;align-items:center;gap:10px;
+  background:var(--orange-light);border:1.5px solid var(--orange-mid);
+  border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;
+  font-size:14px;color:var(--orange);
+}
+.locked-banner strong{font-weight:700;}
+
+/* EMPTY STATE */
+.empty-state{
+  text-align:center;padding:40px 20px;
+  animation:popIn 0.3s ease;
+}
+.empty-state .big{font-size:52px;margin-bottom:12px;}
+.empty-state h3{font-size:18px;font-weight:700;color:var(--text);margin-bottom:6px;}
+.empty-state p{font-size:14px;color:var(--muted);}
+
+/* MOTIVATIONAL */
+.motiv{
+  background:linear-gradient(135deg,var(--purple-light),var(--blue-light));
+  border:1.5px solid #c8b8e8;
+  border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;
+  font-size:14px;color:var(--purple);font-weight:500;
+  display:flex;align-items:center;gap:10px;
+}
+.motiv .motiv-icon{font-size:22px;}
+
+/* RULES TAB */
+.rules-inner{padding:14px 14px calc(72px + env(safe-area-inset-bottom,0px));max-width:580px;margin:0 auto;}
+.rules-hero{
+  background:linear-gradient(135deg,var(--teal),var(--blue));
+  border-radius:var(--radius);padding:16px;margin-bottom:14px;
+  color:#fff;display:flex;align-items:center;gap:12px;
+}
+.rules-hero .rh-icon{font-size:36px;}
+.rules-hero h2{font-size:17px;font-weight:700;}
+.rules-hero p{font-size:12px;opacity:0.85;margin-top:3px;}
+.rule-card{
+  background:var(--card);border:1.5px solid var(--border);
+  border-radius:var(--radius);margin-bottom:10px;overflow:hidden;
+}
+.rule-hdr{
+  padding:13px 14px;display:flex;align-items:center;gap:10px;
+  cursor:pointer;-webkit-tap-highlight-color:transparent;
+  min-height:44px;
+}
+.rule-hdr:active{background:var(--bg);}
+@media(hover:none){
+  .rule-hdr:active{background:var(--green-light);transition:background 0s;}
+}
+.rule-hdr .ri{font-size:22px;flex-shrink:0;}
+.rule-hdr .rt{font-size:15px;font-weight:600;flex:1;}
+.rule-hdr .rc{font-size:20px;color:var(--muted);transition:transform 0.2s;}
+.rule-card.open .rc{transform:rotate(180deg);}
+.rule-body{
+  display:none;padding:0 14px 13px 46px;
+  border-top:1.5px solid var(--border);
+  font-size:14px;color:var(--text);line-height:1.7;
+}
+.rule-card.open .rule-body{display:block;}
+.rule-body ul{padding-left:18px;}
+.rule-body ul li{margin-bottom:5px;}
+.rule-body .cb{
+  display:inline-block;background:var(--green-light);color:var(--green);
+  border-radius:999px;font-size:12px;font-weight:700;
+  padding:3px 10px;margin:4px 4px 4px 0;
+}
+.doctor-card{
+  background:var(--teal-light);border:1.5px solid #80c8c0;
+  border-radius:var(--radius);padding:14px;
+}
+.doctor-card h3{font-size:15px;font-weight:700;color:var(--teal);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.doctor-card p{font-size:14px;color:var(--text);line-height:1.7;}
+.doctor-card a{color:var(--teal);font-weight:600;}
+
+/* TAB BAR */
+.tab-bar{
+  display:flex;background:var(--card);
+  border-top:1.5px solid var(--border);
+  position:fixed;bottom:0;left:0;right:0;
+  /* Safe area per iPhone con home indicator (X in poi) */
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  /* Backdrop blur come le app native iOS */
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  backdrop-filter:blur(20px) saturate(180%);
+  background:rgba(255,255,255,0.88);
+  z-index:200;
+}
+@media(prefers-color-scheme:dark){
+  .tab-bar{background:rgba(30,36,24,0.92);}
+}
+.tab-btn{
+  flex:1;padding:10px 4px 8px;font-size:11px;font-weight:600;
+  color:var(--muted);background:none;border:none;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  /* Niente highlight blu al tap su iOS */
+  -webkit-tap-highlight-color:transparent;
+  transition:color 0.15s;
+  /* Target minimo 44x44pt raccomandato da Apple HIG */
+  min-height:44px;
+}
+.tab-btn.active{color:var(--green);}
+.tab-btn .tbi{font-size:22px;}
+
+/* TAB CONTENTS */
+.tab-view{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.tab-view.active{display:flex;}
+#viewPiano{flex-direction:column;}
+
+/* TOAST */
+.toast{
+  position:fixed;bottom:calc(70px + env(safe-area-inset-bottom,0px) + 10px);
+  left:50%;transform:translateX(-50%) translateY(20px);
+  background:#222;color:#fff;border-radius:999px;
+  padding:9px 18px;font-size:14px;font-weight:500;
+  opacity:0;transition:all 0.25s;pointer-events:none;z-index:500;
+  white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<!-- PIANO VIEW -->
+<div id="viewPiano" class="tab-view active" style="flex-direction:column;">
+  <div class="hdr">
+    <div class="hdr-inner">
+      <div class="hdr-top">
+        <div class="hdr-avatar">💪</div>
+        <div class="hdr-title">
+          <h1>Il piano di Aldo!</h1>
+          <p>Dott. Umberto Amelia — Diabetologia</p>
+        </div>
+      </div>
+      <div class="hdr-month">
+        <span class="hdr-month-label" id="monthLabel">Ottobre 2026</span>
+        <div class="month-nav">
+          <button class="month-btn" onclick="changeMonth(-1)">&#8249;</button>
+          <button class="month-btn" onclick="changeMonth(1)">&#8250;</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="week-strip" id="weekStrip"></div>
+  <div class="main" id="mainScroll">
+    <div class="main-inner" id="dayContent"></div>
+  </div>
+</div>
+
+<!-- REGOLE VIEW -->
+<div id="viewRegole" class="tab-view">
+  <div class="main" style="flex:1;">
+    <div class="rules-inner">
+      <div class="rules-hero">
+        <div class="rh-icon">📋</div>
+        <div>
+          <h2>Regole del piano</h2>
+          <p>Le indicazioni del tuo medico da seguire ogni giorno</p>
+        </div>
+      </div>
+
+      <div class="rule-card" onclick="toggleRule(this)">
+        <div class="rule-hdr"><span class="ri">🫒</span><span class="rt">Condimento quotidiano</span><span class="rc">&#8964;</span></div>
+        <div class="rule-body">Usa <strong>4-6 cucchiaini di olio extra vergine di oliva</strong> al giorno per condire tutti i tuoi piatti.</div>
+      </div>
+
+      <div class="rule-card" onclick="toggleRule(this)">
+        <div class="rule-hdr"><span class="ri">🚫</span><span class="rt">Alimenti da evitare</span><span class="rc">&#8964;</span></div>
+        <div class="rule-body">
+          <ul>
+            <li>Yogurt alla frutta</li>
+            <li>Alimenti processati</li>
+            <li>Bevande zuccherate</li>
+            <li>Succhi di frutta o marmellata (<strong>anche senza zuccheri aggiunti</strong>)</li>
+            <li>Dolciumi, gelati, caramelle</li>
+            <li>Frutta sciroppata, frutta cotta, frutta secca</li>
+            <li>Prodotti per diabetici tipo biscotti senza zuccheri</li>
+            <li>Spremuta di agrumi</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="rule-card" onclick="toggleRule(this)">
+        <div class="rule-hdr"><span class="ri">⚖️</span><span class="rt">Grammature e pesatura</span><span class="rc">&#8964;</span></div>
+        <div class="rule-body">Le grammature sono riferite agli alimenti <strong>crudi e privi di scarto</strong>. È importante pesare gli alimenti, almeno nella fase iniziale della modifica dello stile alimentare, e rispettare il numero dei pasti previsti.</div>
+      </div>
+
+      <div class="rule-card" onclick="toggleRule(this)">
+        <div class="rule-hdr"><span class="ri">🍽️</span><span class="rt">Come mangiare</span><span class="rc">&#8964;</span></div>
+        <div class="rule-body">
+          Mangia <strong>lentamente</strong> e mastica bene gli alimenti.<br><br>
+          Evita di consumare più pietanze elaborate nello stesso pasto.<br><br>
+          In caso di fame, <strong>aumenta la quantità dell'alimento</strong> ma non aggiungere un altro tipo di alimento.<br><br>
+          <em>💡 Il gusto che cambia aumenta la fame!</em>
+        </div>
+      </div>
+
+      <div class="rule-card" onclick="toggleRule(this)">
+        <div class="rule-hdr"><span class="ri">🌿</span><span class="rt">Spezie e condimenti permessi</span><span class="rc">&#8964;</span></div>
+        <div class="rule-body">
+          Sono consentite <strong>spezie e erbette</strong>, aceto, succo di limone e brodo vegetale (da evitare in caso di pirosi o meteorismo).<br><br>
+          <strong>Non usare:</strong> dadi, esaltatori di sapidità.<br><br>
+          <strong>Limitare:</strong> burro, margarine, panna, maionese, alimenti processati o ultraprocessati.
+        </div>
+      </div>
+
+      <div class="rule-card" onclick="toggleRule(this)">
+        <div class="rule-hdr"><span class="ri">🔥</span><span class="rt">Cottura consigliata</span><span class="rc">&#8964;</span></div>
+        <div class="rule-body">
+          <span class="cb">🥦 Verdure</span> crude, grigliate, lessate o lessate e poi passate in padella con poco olio.<br><br>
+          <span class="cb">🥩 Carne e pesce</span> alla piastra, alla griglia, al forno (arrosto o al cartoccio), bolliti, in acqua o salsa di pomodoro (solo se tollerato).<br><br>
+          <span class="cb">🥚 Uova</span> alla coque, in camicia, sode o con salsa di pomodoro.<br><br>
+          <strong>Preferire la purea di legumi</strong> (non frullati ma passati) in caso di diverticoli e/o meteorismo.
+        </div>
+      </div>
+
+      <div class="rule-card" onclick="toggleRule(this)">
+        <div class="rule-hdr"><span class="ri">🍞</span><span class="rt">Il pane per i celiaci</span><span class="rc">&#8964;</span></div>
+        <div class="rule-body">In caso di celiachia: usare pane con farina di mais, riso, grano saraceno o sorgo, o miscele di farine già pronte (Schar, Caputo, Fiberpasta). Alternativa: pane raffermo tostato al forno, pane con farina tipo 2 (semintegrale) o di segale. Fuori casa: una rosetta.</div>
+      </div>
+
+      <br>
+      <div class="doctor-card">
+        <h3>🩺 Il tuo medico</h3>
+        <p>
+          <strong>Dott. Umberto Amelia</strong><br>
+          Spec. Diabetologia e Malattie del Ricambio<br>
+          Via Garibaldi 26, Nocera Inferiore (SA)<br>
+          📞 <a href="tel:3356798782">335 6798782</a><br>
+          ✉️ diab.sa1@libero.it
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB BAR -->
+<nav class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('viewPiano',this)">
+    <span class="tbi">📅</span>Piano
+  </button>
+  <button class="tab-btn" onclick="switchTab('viewRegole',this)">
+    <span class="tbi">📋</span>Regole
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────
+const START = new Date(2026,9,30); // 30 ottobre 2026
+const END   = new Date(2027,3,30); // 30 aprile 2027
+
+const MONTHS_IT = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+const DAYS_IT   = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+const MEAL_EMOJI= {'Colazione':'☀️','Spuntino mattina':'🍌','Pranzo':'🍽️','Spuntino pomeriggio':'🍊','Cena':'🌙','Spuntino sera':'⭐'};
+
+const MOTIVS = [
+  "Ogni pasto sano è un passo avanti! 💪",
+  "Stai facendo una cosa bellissima per te! 🌟",
+  "Il tuo corpo ti ringrazia ogni giorno! ❤️",
+  "Piccoli passi, grandi risultati! 🚀",
+  "Oggi mangi bene, domani ti senti meglio! 😊",
+  "Sei un campione! Continua così! 🏆",
+  "La salute è il tesoro più grande! 💎",
+  "Un giorno alla volta, ce la fai! 🌈",
+];
+
+// ── PIANI ─────────────────────────────────────────────
+const PLANS = {
+1:{kcal:1548,meals:[
+  {nome:"Colazione",piatti:[
+    {nome:"Yogurt scremato",g:null,icon:"🥛",alt:["anche di soia, capra o senza lattosio","con un cucchiaino di caffè e Pavesini sbriciolati se presenti nel menu del giorno","o zucchero di canna grezzo e un cucchiaino di caffè","o con un kiwi tagliato a pezzettoni","oppure latte parz. scremato o senza lattosio in caso di intolleranza","oppure yogurt greco magro o yogurt da bere tipo Actimel o Kefir","oppure una tazza di orzo o the verde preferibilmente"]},
+    {nome:"Pavesini",g:"35 g",icon:"🍪",alt:["una confezione che pesa circa 25 g","oppure con lo yogurt a colazione sbriciolati e se gradito due cucchiaini di caffè","o un frutto tagliato a tozzetti se presente, con metà confezione di Pavesini"]}
+  ]},
+  {nome:"Spuntino mattina",piatti:[
+    {nome:"Banane",g:null,icon:"🍌",alt:["se consumata allo spuntino può essere tagliata e aggiunta allo yogurt magro"]},
+    {nome:"Pavesini",g:null,icon:"🍪",alt:["una confezione da circa 25 g"]}
+  ]},
+  {nome:"Pranzo",piatti:[
+    {nome:"Olive verdi",g:null,icon:"🫒",alt:[]},
+    {nome:"Bruschetta aglio e olio",g:"70 g pane",icon:"🍞",alt:["anche solo olio con farina di riso, mais, grano saraceno o sorgo se celiaci"]},
+    {nome:"Insalata di scarola e limone",g:null,icon:"🥗",alt:["oppure scarole lessate e condite con olio o pomodori","o lattuga o altra verdura di stagione"]},
+    {nome:"Stoccafisso in bianco",g:"250 g ammollato + prezzemolo + limone + aglio + olio",icon:"🐟",alt:["lessare 10 min lo stoccafisso, tagliarlo a pezzetti e condirlo con olio, prezzemolo e aglio tritato","oppure sedano, limone e olive verdi","oppure acciughe","oppure merluzzo al pomodoro o altro pesce"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Pere",g:"200 g senza buccia",icon:"🍐",alt:["o altro frutto di stagione"]}
+  ]},
+  {nome:"Spuntino pomeriggio",piatti:[
+    {nome:"Yogurt scremato",g:null,icon:"🥛",alt:["vedi opzioni colazione"]}
+  ]},
+  {nome:"Cena",piatti:[
+    {nome:"Pane di frumento tostato",g:"80 g",icon:"🍞",alt:["nei celiaci con farina di mais, riso o grano saraceno","oppure pane tipo 2 (semintegrale) o di segale","o in caso di pranzo fuori domicilio una rosetta"]},
+    {nome:"Scamorza alla piastra",g:"100 g",icon:"🧀",alt:["tagliare a fettine alte, grigliare bollente finché morbida da entrambi i lati","servire caldo — anche senza lattosio"]},
+    {nome:"Insalata di scarola e limone",g:null,icon:"🥗",alt:["o lattuga o altra verdura di stagione"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Pere",g:null,icon:"🍐",alt:["o altro frutto di stagione"]}
+  ]},
+  {nome:"Spuntino sera",piatti:[
+    {nome:"Tisana di finocchio",g:null,icon:"🍵",alt:["versare acqua bollente su 2-5 g di semi di finocchio frantumati, infondere 10-15 min in recipiente coperto, filtrare","con miele di acacia un cucchiaino in estate"]},
+    {nome:"Taralli scaldati",g:null,icon:"🫓",alt:["taralli bolliti bagnati e conditi con filo di olio o con le verdure lesse del giorno","oppure pane raffermo tostato e bagnato (panzanella)","oppure frisella — per cena veloce con olio, pomodori e parmigiano","oppure una rosetta"]},
+    {nome:"Pavesini",g:null,icon:"🍪",alt:["confezione da ~25 g"]}
+  ]}
+]},
+
+2:{kcal:1169,meals:[
+  {nome:"Colazione",piatti:[
+    {nome:"Yogurt scremato",g:null,icon:"🥛",alt:["vedi opzioni Giorno 1"]},
+    {nome:"Fette biscottate integrali",g:"30 g",icon:"🍞",alt:["con yogurt sbriciolate e aggiunte allo yogurt con ½ cucchiaino di miele","e se gradito due cucchiaini di caffè","senza glutine se celiaci"]}
+  ]},
+  {nome:"Spuntino mattina",piatti:[
+    {nome:"Finocchi crudi",g:null,icon:"🥬",alt:["finocchio tagliato a listarelle, anche condito con un filo di olio"]},
+    {nome:"Taralli scaldati",g:null,icon:"🫓",alt:["conditi con olio"]},
+    {nome:"Crackers integrali",g:null,icon:"🍘",alt:["è possibile aggiungere una fetta di prosciutto crudo"]}
+  ]},
+  {nome:"Pranzo",piatti:[
+    {nome:"Pane di frumento tostato",g:"80 g",icon:"🍞",alt:["vedi Giorno 1"]},
+    {nome:"Fesa di maiale ai ferri",g:"150 g",icon:"🥩",alt:["con olio extra vergine di oliva","oppure saltata in padella con funghi fuori domicilio"]},
+    {nome:"Funghi champignons in padella",g:null,icon:"🍄",alt:["con olio extra vergine di oliva","oppure funghi porcini o chiodini con olio, aglio e prezzemolo","o con passato di zucca (piatto unico)"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Pere",g:null,icon:"🍐",alt:["o altro frutto di stagione"]}
+  ]},
+  {nome:"Spuntino pomeriggio",piatti:[
+    {nome:"Pere",g:null,icon:"🍐",alt:["o altro frutto di stagione"]}
+  ]},
+  {nome:"Cena",piatti:[
+    {nome:"Bruschetta pom. e origano",g:"50 g pane + 25 g pomodori",icon:"🍅",alt:["in caso di allergia al nichel: passata di pomodoro in vetro"]},
+    {nome:"Tonno sott'olio sgocciolato",g:"90 g",icon:"🐟",alt:["contenitore in vetro"]},
+    {nome:"Insalata di fagioli cannellini",g:null,icon:"🫘",alt:["cannellini in scatola scolati con olio","oppure 1-2 cucchiai di fagioli con scarola cruda o lessata","o fagioli borlotti freschi lessati"]},
+    {nome:"Insalata di scarola",g:null,icon:"🥗",alt:["o lattuga — se presenti patate: insalata di patate, scarole e pomodori o datterini"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]}
+  ]},
+  {nome:"Spuntino sera",piatti:[
+    {nome:"Crackers integrali",g:null,icon:"🍘",alt:["con fetta di prosciutto crudo"]},
+    {nome:"Bruschetta pom. e origano",g:null,icon:"🍅",alt:[]},
+    {nome:"Coppa di ortaggi",g:null,icon:"🥕",alt:["finocchi, carote e sedano bianco tagliati a listarelle","ravanelli, lattuga, peperoni rossi"]}
+  ]}
+]},
+
+3:{kcal:1381,meals:[
+  {nome:"Colazione",piatti:[
+    {nome:"The verde",g:null,icon:"🍵",alt:["come bevanda pomeridiana freddo non confezionato (preparare al domicilio)","se gradito con latte vegetale (avena)"]},
+    {nome:"Pane di frumento tostato",g:"40 g",icon:"🍞",alt:["con olio e/o succo di pomodoro (30/40 g)","o leggero strato di marmellata","nei celiaci: pane con farina di mais"]},
+    {nome:"Albume cotto",g:"80 g albume d'uovo",icon:"🥚",alt:["albume di due uova cotto con acqua e aceto balsamico","oppure aggiunto nel brodo vegetale","oppure strapazzato con verdure (spinaci, zucchine, asparagi, funghi)","oppure con insalata di riso o salsa di pomodoro","oppure uovo intero come stracciatella","per colazione: su fetta di pane tostato con olio e succo di pomodoro"]}
+  ]},
+  {nome:"Pranzo",piatti:[
+    {nome:"Pane di frumento tostato",g:"70 g",icon:"🍞",alt:["vedi Giorno 1"]},
+    {nome:"Stracchino",g:null,icon:"🧀",alt:["o parmigiano o feta (60 g)","o stracciatella o Jocca o scamorza alla piastra","o Philadelphia o caprino fresco","o ricotta o robiola (senza lattosio se intolleranti)"]},
+    {nome:"Carote crude",g:null,icon:"🥕",alt:["se presenti barbabietole: tagliate a tozzetti e cotte al forno"]},
+    {nome:"Barbabietole rosse",g:null,icon:"🫐",alt:["al forno con carote, una patata, cipolla rossa, olio, timo e rosmarino","oppure altra verdura lessa (scarole, zucchine, broccoli)","o passato di zucca o crema di ceci con filo di olio crudo"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Mele",g:"200 g",icon:"🍎",alt:[]}
+  ]},
+  {nome:"Spuntino pomeriggio",piatti:[
+    {nome:"Yogurt scremato",g:null,icon:"🥛",alt:["vedi Giorno 1"]},
+    {nome:"Pavesini",g:"20 g",icon:"🍪",alt:[]}
+  ]},
+  {nome:"Cena",piatti:[
+    {nome:"Bruschetta pom. e origano",g:"70 g pane + 35 g pomodori",icon:"🍅",alt:["in caso di allergia al nichel: passata di pomodoro in vetro"]},
+    {nome:"Frittata",g:"uovo intero 120 g + parmigiano 10 g",icon:"🍳",alt:["albume di due uova e tuorlo di uno — a dadini con riso lesso","oppure scamorza alla piastra (60-100 g)"]},
+    {nome:"Passato di verdura",g:null,icon:"🥣",alt:["carote, sedano, pomodori, zucchine, cipolle, zucca gialla","oppure zuppetta di verdure o minestrone surgelato","evitare le carote in caso di allergia al nichel — o passato di zucca"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Mele",g:null,icon:"🍎",alt:[]}
+  ]},
+  {nome:"Spuntino sera",piatti:[
+    {nome:"Bruschetta con prosciutto e pom.",g:null,icon:"🍅",alt:[]},
+    {nome:"Mandorle",g:"30 g",icon:"🥜",alt:["circa 10-15 mandorle (20 g) oppure circa 18-25 mandorle (30 g)"]}
+  ]}
+]},
+
+4:{kcal:1407,meals:[
+  {nome:"Colazione",piatti:[
+    {nome:"The verde",g:null,icon:"🍵",alt:["freddo non confezionato (preparare al domicilio)","se gradito con latte vegetale (avena)"]},
+    {nome:"Pane di frumento tostato",g:"40 g",icon:"🍞",alt:["vedi Giorno 3"]},
+    {nome:"Prosciutto cotto magro",g:"30 g",icon:"🥩",alt:["tipo San Giovanni senza additivi"]}
+  ]},
+  {nome:"Pranzo",piatti:[
+    {nome:"Pasta e fagioli",g:"pasta 80 g + fagioli borlotti secchi 40 g + aglio + pepe + olio",icon:"🫘",alt:["mettere i fagioli a bagno, cuocere a fiamma bassa con aglio e olio per almeno 2 ore","pochi minuti prima lessare la pasta corta a parte, scolarla e unirla ai fagioli","condire con sale, pepe nero e olio extra vergine di oliva — passati"]},
+    {nome:"Finocchi in insalata",g:null,icon:"🥬",alt:["con succo di limone e olio","oppure finocchi-lattuga-radicchio rosso con olio, aceto balsamico e cipolline","o altra verdura cruda di stagione"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Mele",g:null,icon:"🍎",alt:[]}
+  ]},
+  {nome:"Spuntino pomeriggio",piatti:[
+    {nome:"Yogurt scremato",g:"125 g",icon:"🥛",alt:["vedi Giorno 1"]}
+  ]},
+  {nome:"Cena",piatti:[
+    {nome:"Pane di frumento tostato",g:"100 g",icon:"🍞",alt:["vedi Giorno 1"]},
+    {nome:"Hamburger di manzo ai ferri",g:"150 g",icon:"🥩",alt:["oppure di vitello o fettina o bistecca","oppure di soia per i vegani"]},
+    {nome:"Broccoletti di rapa lessati",g:null,icon:"🥦",alt:["con olio e succo di limone","o broccoli nostrani o fagiolini o carciofi"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]}
+  ]}
+]},
+
+5:{kcal:1178,meals:[
+  {nome:"Colazione",piatti:[
+    {nome:"Latte parz. scremato",g:"200 g",icon:"🥛",alt:["senza lattosio o di soia o di riso se intolleranti","oppure yogurt scremato con miele o tazza di caffè d'orzo con miele"]},
+    {nome:"Fette biscottate integrali",g:"40 g",icon:"🍞",alt:["con yogurt sbriciolate con ½ cucchiaino di miele","e se gradito due cucchiaini di caffè","senza glutine se celiaci"]}
+  ]},
+  {nome:"Pranzo",piatti:[
+    {nome:"Pane di frumento tostato",g:"50 g",icon:"🍞",alt:["vedi Giorno 1"]},
+    {nome:"Polpo in insalata",g:"180 g + 10 g succo di limone + olio",icon:"🐙",alt:["con patate lesse a tozzetti e radicchio rosso o fagiolini lessati","può essere sostituito con seppie, calamari, tonno o sgombro sott'olio"]},
+    {nome:"Patate lessate",g:"100 g",icon:"🥔",alt:["al vapore con olio e aceto balsamico","o a tozzetti nell'insalata di polpo","o saltate in padella con cipolla bianca e fagiolini","cotte senza buccia in caso di allergia al nichel (una patata media)","o cotte al forno con barbabietola rossa"]},
+    {nome:"Carote lessate con limone",g:null,icon:"🥕",alt:["in caso di pirosi solo olio o aceto balsamico","o dopo lessate in padella aggiunte al riso"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Mele",g:"200 g",icon:"🍎",alt:[]}
+  ]},
+  {nome:"Spuntino pomeriggio",piatti:[
+    {nome:"Finocchi crudi",g:null,icon:"🥬",alt:["tagliati a listarelle, anche con un filo di olio"]}
+  ]},
+  {nome:"Cena",piatti:[
+    {nome:"Riso all'olio",g:"80 g riso brillato",icon:"🍚",alt:["riso vialone nano o carnaroli — in sostituzione del pane","come insalata di riso con il secondo del giorno","oppure quinoa o eliche o farfalle o gnocchetti sardi o cous cous"]},
+    {nome:"Frittata",g:"uovo intero + parmigiano",icon:"🍳",alt:["albume di due uova e tuorlo di uno — a dadini con riso lesso","oppure scamorza alla piastra (60-100 g)"]},
+    {nome:"Spinaci in padella",g:null,icon:"🥬",alt:["lessati o insalata di spinaci crudi con gherigli di noce, olio e aceto balsamico","oppure lessati con olio e parmigiano","oppure crudi nel brodo vegetale caldo","oppure carote lesse o carciofi o altra verdura di stagione"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Mele",g:null,icon:"🍎",alt:[]}
+  ]}
+]},
+
+6:{kcal:1555,meals:[
+  {nome:"Colazione",piatti:[
+    {nome:"Latte parz. scremato",g:null,icon:"🥛",alt:["senza lattosio o di soia o di riso se intolleranti","oppure yogurt scremato con miele o tazza di caffè d'orzo con miele"]},
+    {nome:"Pane di frumento tostato",g:"40 g",icon:"🍞",alt:["vedi Giorno 1"]}
+  ]},
+  {nome:"Pranzo",piatti:[
+    {nome:"Pastina in brodo vegetale",g:"pastina 80 g + parmigiano 5 g + brodo vegetale 240 g",icon:"🍜",alt:["oppure riso o tubetti rigati","in caso di allergia al nichel: solo con zucchine, zucca, foglia di scarola"]},
+    {nome:"Mozzarella fresca",g:"140 g",icon:"🧀",alt:["o provola o di bufala — tagliata a fette in salsa di pomodoro","se intolleranti: mozzarella senza lattosio, stracchino o petto di pollo"]},
+    {nome:"Carote lessate con limone",g:null,icon:"🥕",alt:["in caso di pirosi solo olio o aceto balsamico"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Pere",g:"340 g senza buccia",icon:"🍐",alt:["o altro frutto di stagione"]}
+  ]},
+  {nome:"Spuntino pomeriggio",piatti:[
+    {nome:"Kiwi",g:null,icon:"🥝",alt:["tagliato a pezzettoni nello yogurt scremato","in caso di diverticoli eliminare i semi e parte centrale","o ciliege o albicocche nei mesi estivi"]},
+    {nome:"Yogurt scremato",g:null,icon:"🥛",alt:["vedi Giorno 1"]}
+  ]},
+  {nome:"Cena",piatti:[
+    {nome:"Bruschetta pom. e origano",g:"70 g pane + 35 g pomodori",icon:"🍅",alt:["in caso di allergia al nichel: passata di pomodoro in vetro"]},
+    {nome:"Prosciutto crudo magro",g:"80 g",icon:"🥩",alt:[]},
+    {nome:"Insalata di pomodori",g:null,icon:"🍅",alt:["pomodori tipo Sorrento a fette con olio, basilico fresco, rucola e cipolle se gradite"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]}
+  ]}
+]},
+
+7:{kcal:1365,meals:[
+  {nome:"Colazione",piatti:[
+    {nome:"The verde con miele",g:null,icon:"🍵",alt:["in estate freddo fatto in casa o the deteinato","dopo attività sportiva: aggiungere un kiwi o Pavesini","oppure se non gradito: spremuta d'arancia"]},
+    {nome:"Fette biscottate integrali",g:"40 g",icon:"🍞",alt:["con yogurt sbriciolate con ½ cucchiaino di miele","senza glutine se celiaci"]}
+  ]},
+  {nome:"Pranzo",piatti:[
+    {nome:"Pane di frumento tostato",g:"50 g",icon:"🍞",alt:["vedi Giorno 1"]},
+    {nome:"Salsiccia alla griglia",g:"120 g salsiccia di suino",icon:"🌭",alt:["sbriciolata con rucola se nel riso se presente nel menu","oppure prosciutto di maiale ai ferri","o spezzatino di pollo cotto al pomodoro","o vitello ai ferri"]},
+    {nome:"Passato di zucca",g:"150 g zucca + 60 g patate + 15 g parmigiano + 15 g latte scremato",icon:"🎃",alt:["tagliare a piccoli pezzetti zucca e patata, coprire con acqua e cuocere 30-40 min — passare al setaccio con l'acqua di cottura, incorporare il latte, sale, pepe e rimettere sul fuoco un quarto d'ora","servire con parmigiano","oppure: sostituire zucca con carote","o zuppa di zucchetta verde con pomodorini e olio","o minestrone di verdure surgelato"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Pere",g:null,icon:"🍐",alt:["o altro frutto di stagione"]}
+  ]},
+  {nome:"Spuntino pomeriggio",piatti:[
+    {nome:"Spremuta d'arancia",g:null,icon:"🍊",alt:["o di clementine o mandarini — anche come granita o frutto di stagione","per palestra ore 13.00: aggiungere Pavesini o fette biscottate con miele — NO succo di arancia"]}
+  ]},
+  {nome:"Cena",piatti:[
+    {nome:"Brodo vegetale di verdure",g:"carote 150g + sedano 120g + pomodori 105g + zucchine 120g + cipolle 75g + acqua 300g",icon:"🍲",alt:["solo brodo o con carote crude grattugiate o germogli di soia scottati","o con le stesse verdure passate","in caso di allergia al nichel: solo con zucchine, radicchio rosso, un pomodoro pelato e olio","dopo attività sportiva serale: aggiungere albume di due uova e spinacine crude nel brodo caldo e pane tostato 50 g"]},
+    {nome:"Albume cotto",g:"60 g albume d'uovo",icon:"🥚",alt:["di due uova con acqua e aceto balsamico","o strapazzato con verdure (spinaci, zucchine, asparagi, funghi)","o con insalata di riso o salsa di pomodoro","o uovo intero come stracciatella"]},
+    {nome:"Frisella",g:"60 g",icon:"🫓",alt:["leggermente bagnata o tarallo bollito"]},
+    {nome:"Spinaci al vapore",g:null,icon:"🥬",alt:["lessati e conditi con olio","solo scottati in brodo vegetale","come omelette con spinaci o con bresaola nell'insalata di riso","oppure altra verdura di stagione"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Pere",g:null,icon:"🍐",alt:["o altro frutto di stagione"]}
+  ]}
+]},
+
+8:{kcal:1171,meals:[
+  {nome:"Colazione",piatti:[
+    {nome:"The verde con miele",g:null,icon:"🍵",alt:["vedi Giorno 7"]},
+    {nome:"Fette biscottate integrali",g:"30 g",icon:"🍞",alt:["con yogurt sbriciolate con ½ cucchiaino di miele","senza glutine se celiaci"]}
+  ]},
+  {nome:"Pranzo",piatti:[
+    {nome:"Penne al pomodoro e basilico",g:"pasta 70 g + pomodori pelati 85 g + olio + cipolle 5 g + basilico",icon:"🍝",alt:["pomodori freschi a metà cotti al forno con olio e sale — frullare e condire la pasta","preferendo pennette o fusilli con una foglia di basilico","senza glutine se celiaci"]},
+    {nome:"Paillard",g:"vitello magro 180 g + succo di limone 10 g",icon:"🥩",alt:["oppure hamburger"]},
+    {nome:"Insalata di scarola e limone",g:null,icon:"🥗",alt:["o lattuga o altra verdura di stagione"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Kiwi",g:"150 g",icon:"🥝",alt:["nello yogurt scremato se presente nel menu","in caso di diverticoli eliminare i semi e parte centrale","o ciliege o albicocche nei mesi estivi"]}
+  ]},
+  {nome:"Spuntino pomeriggio",piatti:[
+    {nome:"Spremuta d'arancia",g:"150 g",icon:"🍊",alt:["o di clementine o mandarini — anche granita o frutto di stagione","NO succo di arancia"]}
+  ]},
+  {nome:"Cena",piatti:[
+    {nome:"Panino con pomodoro condito",g:"pane 'Tipo 00' 80 g + pomodori 80 g + origano",icon:"🍞",alt:["con succo di pomodoro e olio q.b.","preferire pane raffermo","in caso di allergia al nichel: pomodoro cotto o passata","senza glutine se celiaci"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]}
+  ]}
+]},
+
+9:{kcal:1023,meals:[
+  {nome:"Colazione",piatti:[
+    {nome:"The verde",g:null,icon:"🍵",alt:["freddo non confezionato (preparare al domicilio)","con latte vegetale (avena) se gradito"]},
+    {nome:"Pavesini",g:"30 g",icon:"🍪",alt:["confezione da ~25 g con yogurt sbriciolati","o un frutto a tozzetti con metà confezione di Pavesini"]}
+  ]},
+  {nome:"Pranzo",piatti:[
+    {nome:"Tagliatelle con funghi",g:"pasta 100 g + funghi champignons 40 g + olio + brodo vegetale 120 g",icon:"🍄",alt:["pulire i funghi e tagliarli a fettine — in tegame con aglio, olio, funghi e brodo vegetale — cuocere 20 min aggiungendo brodo all'occorrenza","lessare le tagliatelle, scolare e condire con il sugo ottenuto","oppure al pomodoro"]},
+    {nome:"Finocchi in insalata",g:null,icon:"🥬",alt:["con limone e olio","o finocchi-lattuga-radicchio rosso con olio e aceto balsamico","o altra verdura cruda di stagione"]},
+    {nome:"Taralli scaldati",g:null,icon:"🫓",alt:["bolliti bagnati con olio o verdure lesse del giorno","o pane raffermo tostato e bagnato"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Kiwi",g:null,icon:"🥝",alt:["nello yogurt scremato","in caso di diverticoli eliminare i semi e parte centrale"]}
+  ]},
+  {nome:"Spuntino pomeriggio",piatti:[
+    {nome:"Pane di frumento tostato",g:null,icon:"🍞",alt:["con olio e/o succo di pomodoro o leggero strato di marmellata"]}
+  ]},
+  {nome:"Cena",piatti:[
+    {nome:"Panino tonno e lattuga",g:"pane 'Tipo 00' 80 g + lattuga 25 g + tonno al naturale 50 g",icon:"🐟",alt:["preferibilmente tonno in vetro — anche senza verdure o con pomodoro o scarola","in caso di allergia al nichel: scomporre in insalata con fagioli o patate lesse con pane o riso — se si usa il riso eliminare le patate"]},
+    {nome:"Finocchi crudi",g:null,icon:"🥬",alt:["tagliati a listarelle, anche con un filo di olio"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]}
+  ]}
+]},
+
+10:{kcal:1386,meals:[
+  {nome:"Colazione",piatti:[
+    {nome:"Yogurt scremato",g:null,icon:"🥛",alt:["vedi Giorno 1"]},
+    {nome:"Kiwi",g:null,icon:"🥝",alt:["tagliato a pezzettoni nello yogurt"]}
+  ]},
+  {nome:"Pranzo",piatti:[
+    {nome:"Riso brillato",g:"80 g",icon:"🍚",alt:["riso vialone nano o carnaroli — o chicchi piccoli per insalata di riso","oppure quinoa o cous cous","se gradita: grattugiata di buccia di limone e un filo di olio"]},
+    {nome:"Merluzzo al pomodoro",g:"200 g merluzzo + pomodori 140 g + prezzemolo + cipolle 20 g",icon:"🐟",alt:["bollire 3 min il merluzzo a fuoco dolce — spinarlo","preparare salsa con pomodori e cipolla","a metà cottura unire il merluzzo e terminare di cuocere","condire con olio e prezzemolo"]},
+    {nome:"Fagiolini lessati",g:null,icon:"🥦",alt:["o cetrioli, taccole, lardari, asparagi, cornetti (anche surgelati)","se presenti patate nel menu: saltare in padella con patate, cipolle bianche e un cucchiaino di olio"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Pere",g:null,icon:"🍐",alt:["o altro frutto di stagione"]}
+  ]},
+  {nome:"Spuntino pomeriggio",piatti:[
+    {nome:"Crackers integrali",g:null,icon:"🍘",alt:["è possibile aggiungere una fetta di prosciutto crudo"]}
+  ]},
+  {nome:"Cena",piatti:[
+    {nome:"Frisella",g:"80 g",icon:"🫓",alt:["leggermente bagnata o tarallo bollito"]},
+    {nome:"Mozzarella fresca",g:"160 g",icon:"🧀",alt:["o provola o di bufala a fette","se intolleranti: mozzarella senza lattosio, stracchino o petto di pollo"]},
+    {nome:"Fagiolini lessati",g:null,icon:"🥦",alt:["vedi pranzo — o zucchine o spinaci o altra verdura di stagione"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Kiwi",g:null,icon:"🥝",alt:[]}
+  ]}
+]},
+
+11:{kcal:1132,meals:[
+  {nome:"Colazione",piatti:[
+    {nome:"The verde",g:null,icon:"🍵",alt:["freddo non confezionato (preparare al domicilio)","con latte vegetale (avena) se gradito"]},
+    {nome:"Fette biscottate integrali",g:"40 g",icon:"🍞",alt:["con yogurt sbriciolate con ½ cucchiaino di miele","senza glutine se celiaci"]}
+  ]},
+  {nome:"Pranzo",piatti:[
+    {nome:"Crema di ceci",g:"ceci secchi 70 g + limone 5 g + aglio + chiodi di garofano + olio + sale + pepe",icon:"🫘",alt:["mettere i ceci in ammollo, cuocerli e frullarli con chiodi di garofano, limone, sale e pepe fino a crema omogenea","da accompagnare con pesce grigliato se presente nel menu o spalmare sulle verdure","oppure zuppa di fagioli freschi o secchi","oppure riso lesso con olio e buccia di limone grattugiata"]},
+    {nome:"Seppie al limone",g:null,icon:"🦑",alt:["con olio extra vergine di oliva","seppie grigliate o totani o calamari o sgombro o polpo","in estate: cozze — o altro pesce o petto di pollo grigliato"]},
+    {nome:"Pane di frumento tostato",g:"70 g",icon:"🍞",alt:["vedi Giorno 1"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Pere",g:null,icon:"🍐",alt:["o altro frutto di stagione"]}
+  ]},
+  {nome:"Spuntino pomeriggio",piatti:[
+    {nome:"Yogurt scremato",g:null,icon:"🥛",alt:["vedi Giorno 1"]}
+  ]},
+  {nome:"Cena",piatti:[
+    {nome:"Pane di frumento tostato",g:"80 g",icon:"🍞",alt:["vedi Giorno 1"]},
+    {nome:"Tonno sott'olio sgocciolato",g:null,icon:"🐟",alt:["contenitore in vetro"]},
+    {nome:"Fagioli con olio",g:null,icon:"🫘",alt:["fagioli borlotti freschi con olio","o fagioli cannellini in scatola (1-2 cucchiai) con cipolle","o crema di fagioli con olio e cozze o vongole o gamberetti lessati","fagioli secchi 40 g, freschi 120 g"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Pere",g:null,icon:"🍐",alt:["o altro frutto di stagione"]},
+    {nome:"Insalata di scarola e limone",g:null,icon:"🥗",alt:["o lattuga o altra verdura di stagione"]}
+  ]}
+]},
+
+12:{kcal:1341,meals:[
+  {nome:"Colazione",piatti:[
+    {nome:"Yogurt scremato",g:null,icon:"🥛",alt:["vedi Giorno 1"]},
+    {nome:"Fette biscottate integrali",g:"30 g",icon:"🍞",alt:["con yogurt sbriciolate con ½ cucchiaino di miele","senza glutine se celiaci"]}
+  ]},
+  {nome:"Pranzo",piatti:[
+    {nome:"Trenette al pesto",g:"100 g trenette + 30 g pesto alla genovese",icon:"🍝",alt:["oppure gnocchetti sardi o farfalle al pesto","o al pomodoro e basilico"]},
+    {nome:"Insalata di lattuga",g:null,icon:"🥗",alt:["con olio","o gentilina, canasta, lattughino o songino","nell'insalata: fagioli lessati o polpo tagliato a striscioline"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Mele",g:"200 g",icon:"🍎",alt:[]}
+  ]},
+  {nome:"Spuntino pomeriggio",piatti:[
+    {nome:"Spremuta d'arancia",g:null,icon:"🍊",alt:["o di clementine o mandarini — anche granita o frutto di stagione","per palestra ore 13.00: Pavesini o fette biscottate con miele — NO succo di arancia"]}
+  ]},
+  {nome:"Cena",piatti:[
+    {nome:"Bruschetta aglio e olio",g:"60 g pane + aglio fresco + olio",icon:"🍞",alt:["anche solo olio con farina di riso, mais, grano saraceno o sorgo se celiaci"]},
+    {nome:"Fesa di maiale ai ferri",g:"120 g + olio",icon:"🥩",alt:["oppure saltata in padella con funghi fuori domicilio"]},
+    {nome:"Funghi porcini al prezzemolo",g:null,icon:"🍄",alt:["con prezzemolo"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]}
+  ]}
+]},
+
+13:{kcal:1504,meals:[
+  {nome:"Colazione",piatti:[
+    {nome:"Yogurt scremato",g:null,icon:"🥛",alt:["vedi Giorno 1"]},
+    {nome:"Corn flakes integrali",g:"40 g",icon:"🥣",alt:["oppure Kellogg's ai frutti rossi o con cioccolato","o cereali al miele","oppure fette biscottate integrali"]},
+    {nome:"Kiwi",g:null,icon:"🥝",alt:[]}
+  ]},
+  {nome:"Pranzo",piatti:[
+    {nome:"Zuppa di fagioli e scarola",g:"fagioli borlotti freschi 150 g + pomodori pelati 180 g + scarola 75 g + aglio + sedano + prezzemolo + olio + brodo vegetale 300 g",icon:"🫘",alt:["in una casseruola cuocere i fagioli in abbondante acqua, unire pomodori pelati, aglio e sedano per 45 min","contemporaneamente sbollentare la scarola, sgocciolarla e strizzarla unendola poi ai fagioli","completare con prezzemolo e olio — possono essere usati fagioli in scatola — oppure cicoria e ceci"]},
+    {nome:"Pane di frumento tostato",g:"50 g",icon:"🍞",alt:["vedi Giorno 1"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Mele",g:"200 g",icon:"🍎",alt:[]}
+  ]},
+  {nome:"Spuntino pomeriggio",piatti:[
+    {nome:"Mele",g:"200 g",icon:"🍎",alt:[]}
+  ]},
+  {nome:"Cena",piatti:[
+    {nome:"Merluzzo olio e prezzemolo",g:"250 g merluzzo + succo di limone 15 g + olio",icon:"🐟",alt:["in caso di allergia al nichel: no prezzemolo","in caso di orticaria preferire sempre pesce fresco non conservato","oppure stoccafisso con sedano"]},
+    {nome:"Insalata di lattuga",g:null,icon:"🥗",alt:["o gentilina, canasta, lattughino o songino","con fagioli lessati o polpo tagliato a striscioline"]},
+    {nome:"Pane di frumento tostato",g:"70 g",icon:"🍞",alt:["vedi Giorno 1"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]}
+  ]}
+]},
+
+14:{kcal:1084,meals:[
+  {nome:"Colazione",piatti:[
+    {nome:"Caffè d'orzo con miele",g:null,icon:"☕",alt:["orzo solubile o macchiato con latte","oppure the verde"]},
+    {nome:"Fette biscottate integrali",g:"40 g",icon:"🍞",alt:["con yogurt sbriciolate con ½ cucchiaino di miele","senza glutine se celiaci"]}
+  ]},
+  {nome:"Pranzo",piatti:[
+    {nome:"Mezze penne con zucchine",g:"pasta alimentare",icon:"🍝",alt:["con zucchine grigliate"]},
+    {nome:"Zucchine grigliate",g:null,icon:"🥒",alt:[]},
+    {nome:"Fettina vitello ai ferri",g:null,icon:"🥩",alt:[]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]},
+    {nome:"Mele",g:"200 g",icon:"🍎",alt:[]}
+  ]},
+  {nome:"Spuntino pomeriggio",piatti:[
+    {nome:"Mele",g:null,icon:"🍎",alt:[]}
+  ]},
+  {nome:"Cena",piatti:[
+    {nome:"Panino alle verdure lesse",g:null,icon:"🥖",alt:[]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]}
+  ]}
+]},
+
+15:{kcal:724,meals:[
+  {nome:"Colazione",piatti:[
+    {nome:"Caffè d'orzo in tazza grande",g:null,icon:"☕",alt:["orzo solubile o macchiato con latte oppure the verde"]},
+    {nome:"Fette biscottate integrali",g:"40 g",icon:"🍞",alt:["con yogurt sbriciolate con ½ cucchiaino di miele","senza glutine se celiaci"]},
+    {nome:"Kiwi",g:null,icon:"🥝",alt:["nello yogurt scremato","in caso di diverticoli eliminare i semi e parte centrale"]}
+  ]},
+  {nome:"Pranzo",piatti:[
+    {nome:"Minestrone surgelato di verdure",g:"150 g",icon:"🥣",alt:["oppure minestrone con zucchine, carote, zucca gialla, fiori di zucchine, una patata a tozzetti","o spinaci crudi scottati con pomodorini e olio"]},
+    {nome:"Petto di pollo ai ferri",g:"150 g + olio",icon:"🍗",alt:["grigliato a listerelle nell'insalata di pasta o di riso","o spezzatino di pollo al pomodoro o ai peperoni","o con altri componenti del giorno"]},
+    {nome:"Insalata di scarola",g:null,icon:"🥗",alt:["scarola lessa con olio e aglio","o lattuga","se presenti patate: insalata di patate, scarole e pomodori o datterini"]},
+    {nome:"Pane di frumento tostato",g:"50 g",icon:"🍞",alt:["vedi Giorno 1"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]}
+  ]},
+  {nome:"Spuntino pomeriggio",piatti:[
+    {nome:"Mele",g:null,icon:"🍎",alt:[]}
+  ]},
+  {nome:"Cena",piatti:[
+    {nome:"Pizza margherita 🍕",g:null,icon:"🍕",alt:["o bianca con bresaola e rucola","o pizzetta"]},
+    {nome:"Acqua naturale",g:null,icon:"💧",alt:[]}
+  ]}
+]}
+};
+
+// ── STATE ─────────────────────────────────────────────
+let curMonth = 9; // 0-indexed, Ottobre
+let curYear  = 2026;
+let curDayKey = null;
+const SEL_KEY = 'pianoAldo_v2';
+
+function loadSel(){try{return JSON.parse(localStorage.getItem(SEL_KEY)||'{}');}catch(e){return{};}}
+function saveSel(obj){try{localStorage.setItem(SEL_KEY,JSON.stringify(obj));}catch(e){}}
+
+function dateKey(y,m,d){return y+'-'+(m+1)+'-'+d;}
+function isSaturday(y,m,d){return new Date(y,m,d).getDay()===6;}
+function isSunday(y,m,d){return new Date(y,m,d).getDay()===0;}
+function isInRange(y,m,d){
+  const dt=new Date(y,m,d);
+  return dt>=START && dt<=END;
+}
+function isToday(y,m,d){
+  const t=new Date();
+  return t.getFullYear()===y&&t.getMonth()===m&&t.getDate()===d;
+}
+
+// ── NAV ───────────────────────────────────────────────
+function changeMonth(dir){
+  curMonth+=dir;
+  if(curMonth>11){curMonth=0;curYear++;}
+  if(curMonth<0){curMonth=11;curYear--;}
+  // clamp
+  if(curYear<2026||(curYear===2026&&curMonth<9)){curMonth=9;curYear=2026;}
+  if(curYear>2027||(curYear===2027&&curMonth>3)){curMonth=3;curYear=2027;}
+  buildStrip();
+  updateMonthLabel();
+}
+
+function updateMonthLabel(){
+  document.getElementById('monthLabel').textContent=MONTHS_IT[curMonth]+' '+curYear;
+}
+
+function buildStrip(){
+  const strip=document.getElementById('weekStrip');
+  strip.innerHTML='';
+  const daysInMonth=new Date(curYear,curMonth+1,0).getDate();
+  const sel=loadSel();
+  for(let d=1;d<=daysInMonth;d++){
+    if(!isInRange(curYear,curMonth,d)) continue;
+    const key=dateKey(curYear,curMonth,d);
+    const isSat=isSaturday(curYear,curMonth,d);
+    const isSun=isSunday(curYear,curMonth,d);
+    const isT=isToday(curYear,curMonth,d);
+    const hasSel=sel[key];
+    const btn=document.createElement('button');
+    let cls='wpill';
+    if(isSat) cls+=' locked';
+    else if(isSun) cls+=' free';
+    else if(hasSel) cls+=' assigned';
+    if(isT) cls+=' today-mark';
+    if(curDayKey===key) cls+=' active';
+    btn.className=cls;
+    const dow=new Date(curYear,curMonth,d).getDay();
+    const dowLabel=DAYS_IT[dow];
+    let badge=isSat?'🍕':isSun?'☀️':hasSel?'✅':'';
+    btn.innerHTML='<span class="wday">'+dowLabel+'</span><span class="wdate">'+d+'</span>'+(badge?'<span class="wbadge">'+badge+'</span>':'');
+    btn.onclick=(()=>{
+      const _k=key;const _y=curYear;const _m=curMonth;const _d=d;
+      return ()=>selectDay(_k,_y,_m,_d);
+    })();
+    strip.appendChild(btn);
+    // scroll to today
+    if(isT) setTimeout(()=>btn.scrollIntoView({block:'nearest',inline:'center'}),50);
+  }
+}
+
+function selectDay(key,y,m,d){
+  curDayKey=key;
+  document.querySelectorAll('.wpill').forEach(b=>b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('mainScroll').scrollTo(0,0);
+  renderDay(key,y,m,d);
+}
+
+// ── RENDER ────────────────────────────────────────────
+function renderDay(key,y,m,d){
+  const c=document.getElementById('dayContent');
+  const isSat=isSaturday(y,m,d);
+  const isSun=isSunday(y,m,d);
+  const dateStr=d+' '+MONTHS_IT[m]+' '+y;
+
+  if(isSun){
+    c.innerHTML='<div class="free-day"><div class="big">☀️🎉</div><h2>Giorno libero!</h2><p>Nessun vincolo oggi, Aldo!<br>Goditi il pasto e la famiglia! ❤️</p></div>';
+    return;
+  }
+
+  const sel=loadSel();
+  let html='';
+
+  // Motivational
+  const motiv=MOTIVS[d%MOTIVS.length];
+  html+='<div class="motiv"><span class="motiv-icon">💬</span><span>'+motiv+'</span></div>';
+
+  if(isSat){
+    const plan=PLANS[15];
+    html+='<div class="locked-banner">🍕 <span><strong>Sabato — Giorno 15</strong> (Giorno fisso)</span></div>';
+    html+='<div class="kcal-banner"><div><div class="kcal-num">'+plan.kcal+'</div><div class="kcal-sub">kcal oggi</div></div><div class="kcal-emoji">📊</div></div>';
+    html+=renderMeals(plan.meals,key+'_sat');
+    c.innerHTML=html;
+    return;
+  }
+
+  const curSel=sel[key];
+  const usedElse=curSel?Object.entries(sel).some(([k,v])=>k!==key&&v===curSel):false;
+
+  html+='<div class="sel-card">';
+  html+='<div class="sel-card-label">📋 Scegli il tuo piano per oggi</div>';
+  html+='<select onchange="setPlan(\''+key+'\',parseInt(this.value))">';
+  html+='<option value="0"'+(!curSel?' selected':'')+'>— scegli il piano —</option>';
+  for(let n=1;n<=14;n++){
+    const isUsed=Object.entries(sel).some(([k,v])=>k!==key&&v===n);
+    html+='<option value="'+n+'"'+(curSel===n?' selected':'')+'>Giorno '+n+' ('+PLANS[n].kcal+' kcal)</option>';
+  }
+  html+='</select>';
+  if(usedElse) html+='<div class="warn-box" style="display:block">⚠️ Hai già assegnato questo giorno del piano a un\'altra data. Puoi comunque usarlo!</div>';
+  else html+='<div class="warn-box"></div>';
+  html+='</div>';
+
+  if(curSel&&PLANS[curSel]){
+    const plan=PLANS[curSel];
+    html+='<div class="kcal-banner"><div><div class="kcal-num">'+plan.kcal+'</div><div class="kcal-sub">kcal oggi · Giorno '+curSel+'</div></div><div class="kcal-emoji">🎯</div></div>';
+    html+=renderMeals(plan.meals,key);
+  } else {
+    html+='<div class="empty-state"><div class="big">👆</div><h3>Scegli il tuo piano!</h3><p>Seleziona uno dei 14 giorni del piano<br>per vedere tutti i pasti di oggi.</p></div>';
+  }
+  c.innerHTML=html;
+}
+
+function renderMeals(meals,prefix){
+  let html='';
+  meals.forEach((meal,mi)=>{
+    const mEmoji=MEAL_EMOJI[meal.nome]||'🍴';
+    html+='<div class="meal-block">';
+    html+='<div class="meal-head"><span class="meal-emoji">'+mEmoji+'</span><span class="meal-name">'+meal.nome+'</span><div class="meal-line"></div></div>';
+    meal.piatti.forEach((p,pi)=>{
+      const id='d'+prefix+'_'+mi+'_'+pi;
+      const hasAlt=p.alt&&p.alt.length>0;
+      html+='<div class="dish-card" id="'+id+'">';
+      html+='<div class="dish-hdr" onclick="toggleDish(\''+id+'\')">';
+      html+='<span class="dish-icon">'+p.icon+'</span>';
+      html+='<div class="dish-info"><div class="dish-name">'+p.nome+'</div>'+(p.g?'<div class="dish-g">'+p.g+'</div>':'')+'</div>';
+      if(hasAlt) html+='<span class="dish-chevron">&#8964;</span>';
+      html+='</div>';
+      if(hasAlt){
+        html+='<div class="dish-body"><div class="alt-title">Alternative e preparazione</div>';
+        p.alt.forEach(a=>{html+='<div class="alt-item">'+a+'</div>';});
+        html+='</div>';
+      }
+      html+='</div>';
+    });
+    html+='</div>';
+  });
+  return html;
+}
+
+function toggleDish(id){
+  const el=document.getElementById(id);
+  if(el) el.classList.toggle('open');
+}
+
+function setPlan(key,val){
+  const sel=loadSel();
+  if(val===0) delete sel[key]; else sel[key]=val;
+  saveSel(sel);
+  buildStrip();
+  // re-render
+  const parts=key.split('-');
+  renderDay(key,parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]));
+  if(val>0) showToast('Salvato! Giorno '+val+' assegnato ✅');
+}
+
+function toggleRule(el){el.classList.toggle('open');}
+
+function switchTab(id,btn){
+  document.querySelectorAll('.tab-view').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ── INIT ──────────────────────────────────────────────
+updateMonthLabel();
+buildStrip();
+// select today if in range
+const t=new Date();
+if(isInRange(t.getFullYear(),t.getMonth(),t.getDate())){
+  curMonth=t.getMonth();curYear=t.getFullYear();
+  updateMonthLabel();buildStrip();
+  const tk=dateKey(t.getFullYear(),t.getMonth(),t.getDate());
+  curDayKey=tk;
+  renderDay(tk,t.getFullYear(),t.getMonth(),t.getDate());
+} else {
+  // select first day
+  const tk=dateKey(2026,9,30);curDayKey=tk;
+  renderDay(tk,2026,9,30);
+}
+</script>
+</body>
+</html>
